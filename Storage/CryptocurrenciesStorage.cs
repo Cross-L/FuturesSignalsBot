@@ -1,0 +1,107 @@
+using System.Collections.Generic;
+using System.Linq;
+using FuturesSignalsBot.Models;
+
+namespace FuturesSignalsBot.Storage;
+
+public class CryptocurrenciesStorage
+{
+    public List<string> NewCurrencies { get; } = [];
+
+    public List<string> DeletedCurrencies { get; } = [];
+    
+    public readonly List<Cryptocurrency> AllCryptocurrencies =
+    [
+        new("BTCUSDT"),        new("1000000MOGUSDT"), new("1000BONKUSDT"),
+        new("1000CATUSDT"),    new("1000CHEEMSUSDT"), new("1000FLOKIUSDT"),
+        new("1000LUNCUSDT"),   new("1000PEPEUSDT"),   new("1000RATSUSDT"),
+        new("1000SATSUSDT"),   new("1000SHIBUSDT"),   new("1000WHYUSDT"),
+        new("1000XUSDT"),      new("1INCHUSDT"),      new("1MBABYDOGEUSDT"),
+        new("AAVEUSDT"),       new("ACEUSDT"),        new("ACHUSDT"),
+        new("ACTUSDT"),        new("ACXUSDT"),        new("ADAUSDT"),
+        new("AEROUSDT"),       new("AEVOUSDT"),       new("AGLDUSDT"),
+        new("AI16ZUSDT"),      new("AIUSDT"),         new("AIXBTUSDT"),
+        new("AKTUSDT"),        new("ALGOUSDT"),       new("ALICEUSDT"), 
+        new("ALPHAUSDT"),      new("ALTUSDT"),
+        new("ANKRUSDT"),       new("APEUSDT"),        new("API3USDT"),
+        new("APTUSDT"),        new("ARBUSDT"),        new("ARKMUSDT"),
+        new("ARPAUSDT"),       new("ARUSDT"),         new("ASTRUSDT"),
+        new("ATAUSDT"),        new("AUCTIONUSDT"),    new("AVAUSDT"),
+        new("AXLUSDT"),        new("AXSUSDT"),        
+        new("BAKEUSDT"),       new("BANANAUSDT"),
+        new("BANDUSDT"),       new("BANUSDT"),        new("BATUSDT"),
+        new("BBUSDT"),         new("BCHUSDT"),        new("BEAMXUSDT"),
+        new("BELUSDT"),        new("BICOUSDT"),       new("BLURUSDT"),
+        new("BNTUSDT"),        new("BOMEUSDT"),       new("BRETTUSDT"),
+        new("BSVUSDT"),        new("BSWUSDT"),        new("C98USDT"),
+        new("CAKEUSDT"),       new("CATIUSDT"),       new("CELOUSDT"),
+        new("CELRUSDT"),       new("CETUSUSDT"),      new("CFXUSDT"),
+        new("CGPTUSDT"),       new("CHESSUSDT"),      new("CHILLGUYUSDT"),
+        new("CHRUSDT"),        new("CHZUSDT"),        new("CKBUSDT"),
+        new("COMPUSDT"),       new("COSUSDT"),        new("COTIUSDT"),
+        new("COWUSDT"),        new("CTSIUSDT"),       new("CYBERUSDT"),
+        new("DEFIUSDT"),       new("DEGENUSDT"),      new("DEGOUSDT"),
+        new("DENTUSDT"),       new("DEXEUSDT"),       new("DFUSDT"),
+        new("DIAUSDT"),        new("DODOXUSDT"),      new("DOGEUSDT"),
+        new("DOGSUSDT"),       new("DRIFTUSDT"),      new("DUSKUSDT"),
+        new("DYDXUSDT"),       new("DYMUSDT"),        new("EGLDUSDT"),
+        new("EIGENUSDT"),      new("ENAUSDT"),        new("ENJUSDT"),
+        new("ENSUSDT"),        new("ETHFIUSDT"),
+        new("ETHWUSDT"),       new("FARTCOINUSDT"),   new("FETUSDT"),
+        new("FIDAUSDT"),       new("FIOUSDT"),        new("FLMUSDT"),
+        new("FLOWUSDT"),       new("FLUXUSDT"),       new("FXSUSDT"),
+        new("GALAUSDT"),       new("GASUSDT"),        new("GHSTUSDT"),
+        new("GLMUSDT"),        new("GMXUSDT"),        new("GOATUSDT"),
+        new("GRASSUSDT"),      new("GRIFFAINUSDT"),   new("GRTUSDT"),
+        new("GTCUSDT"),        new("GUSDT"),          new("HBARUSDT"),
+        new("HFTUSDT"),        new("HIGHUSDT"),       new("HIPPOUSDT"),
+        new("HIVEUSDT"),       new("HMSTRUSDT"),      new("HOOKUSDT"),
+        new("HOTUSDT"),        new("ICXUSDT"),        new("IDUSDT"),
+        new("ILVUSDT"),        new("IMXUSDT"),        new("INJUSDT"),
+        new("IOSTUSDT"),       new("IOTAUSDT"),       new("IOUSDT"),
+        new("JASMYUSDT"),      new("JOEUSDT"),        new("JTOUSDT"),
+        new("JUPUSDT"),        new("KAIAUSDT"),       new("KAVAUSDT"),
+        new("KDAUSDT"),        new("KMNOUSDT"),       new("KNCUSDT"),
+        new("KOMAUSDT"),       new("KSMUSDT"),        new("LDOUSDT"),
+        new("LEVERUSDT"),      new("LISTAUSDT"),      new("LOKAUSDT"),
+        new("LQTYUSDT"),       new("LRCUSDT"),        new("LSKUSDT"),
+        new("LUMIAUSDT"),      new("LUNA2USDT"),      new("MANTAUSDT"),
+        new("MAVUSDT"),        new("MBOXUSDT"),       new("METISUSDT"),
+        new("MEUSDT"),         new("MEWUSDT"),        new("MINAUSDT"),
+        new("MOCAUSDT"),       new("MOODENGUSDT"),    new("MORPHOUSDT"),
+        new("MOVEUSDT"),       new("MOVRUSDT"),       new("MYROUSDT"),
+        new("NEIROETHUSDT"),   new("NEIROUSDT"),      new("NFPUSDT"),
+        new("NMRUSDT"),        new("NOTUSDT"),        
+        new("OMNIUSDT"),       new("OMUSDT"),         new("ONDOUSDT"),
+        new("ONEUSDT"),        new("ORCAUSDT"),       new("PENDLEUSDT"),
+        new("PENGUUSDT"),      new("PEOPLEUSDT"),     new("PERPUSDT"),
+        new("PHAUSDT"),        new("PHBUSDT"),        new("PIXELUSDT"),
+        new("PNUTUSDT"),       new("POLUSDT"),        new("POLYXUSDT"),
+        new("PONKEUSDT"),      new("POPCATUSDT"),     new("PORTALUSDT"),
+        new("QTUMUSDT"),       new("QUICKUSDT"),      new("RAREUSDT"),
+        new("RAYSOLUSDT"),     new("REIUSDT"),        new("RENDERUSDT"),
+        new("REZUSDT"),        new("RLCUSDT"),        new("RONINUSDT"),
+        new("RPLUSDT"),        new("RSRUSDT"),        new("RUNEUSDT"),
+        new("RVNUSDT"),        new("SAFEUSDT"),       new("SAGAUSDT"),
+        new("SANDUSDT"),       new("SANTOSUSDT"),     new("SCRTUSDT"),
+        new("SCRUSDT"),        new("SEIUSDT"),       
+        new("SNXUSDT"),        new("SPELLUSDT"),      new("SPXUSDT"),
+        new("SSVUSDT"),        new("STEEMUSDT"),      new("STORJUSDT"),
+        new("STRKUSDT"),       new("STXUSDT"),        new("SUNUSDT"),
+        new("SUPERUSDT"),      new("SUSHIUSDT"),      new("SWELLUSDT"),
+        new("SYNUSDT"),        new("SYSUSDT"),        new("THEUSDT"),
+        new("TLMUSDT"),        new("TNSRUSDT"),       new("TRBUSDT"),
+        new("TRUUSDT"),        new("TURBOUSDT"),
+        new("TUSDT"),          new("USTCUSDT"),
+        new("USUALUSDT"),      new("UXLINKUSDT"),     new("VANAUSDT"),
+        new("VANRYUSDT"),      new("VELODROMEUSDT"),  
+        new("VIRTUALUSDT"),    new("VOXELUSDT"),      new("WAXPUSDT"),
+        new("WIFUSDT"),        new("WLDUSDT"),        new("WOOUSDT"),
+        new("WUSDT"),          new("XAIUSDT"),        new("XTZUSDT"),
+        new("ZETAUSDT"),       new("ZKUSDT"),         new("ZROUSDT")
+    ];
+
+
+    public Cryptocurrency? GetCurrencyByName(string name) =>
+        AllCryptocurrencies.FirstOrDefault(currency => currency.Name.Equals(name));
+}
