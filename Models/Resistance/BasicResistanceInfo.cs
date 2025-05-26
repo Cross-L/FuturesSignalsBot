@@ -1,5 +1,3 @@
-using System.Collections.Generic;
-
 namespace FuturesSignalsBot.Models.Resistance;
 
 public class BasicResistanceInfo(

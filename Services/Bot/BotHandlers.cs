@@ -1,6 +1,3 @@
-using System;
-using System.Threading;
-using System.Threading.Tasks;
 using FuturesSignalsBot.Commands;
 using FuturesSignalsBot.Core;
 using Telegram.Bot;

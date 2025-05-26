@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 using System.Globalization;
 
 namespace FuturesSignalsBot.Models;
@@ -13,11 +12,8 @@ public class LiquidationIntersectResult(decimal price, decimal numericalLevel)
 
     private static readonly Dictionary<string, int> LiquidationMap = new()
     {
-        { "+50 Poc", 8 }, { "+33.3 Poc", 7 }, { "+20 Poc", 6 }, { "+10 Poc", 5 }, 
-        { "+6.6 Poc", 4 }, { "+5 Poc", 3 }, { "+3.3 Poc", 2 }, { "+2 Poc", 1 },
-        
-        { "-2 Poc", 1 }, { "-3.3 Poc", 2 }, { "-5 Poc", 3 }, { "-6.6 Poc", 4 },
-        { "-10 Poc", 5 }, { "-20 Poc", 6 }, { "-33.3 Poc", 7 }, { "-50 Poc", 8 }
+        { "+50 Poc", 5 }, { "+33.3 Poc", 4 }, { "+20 Poc", 3 }, { "+10 Poc", 2 }, { "+5 Poc", 1 },
+        { "-5 Poc", 1 }, { "-10 Poc", 2 }, { "-20 Poc", 3 }, { "-33.3 Poc", 4 }, { "-50 Poc", 5 }
     };
 
 }

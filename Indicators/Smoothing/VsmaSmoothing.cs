@@ -1,5 +1,3 @@
-using System;
-using System.Collections.Generic;
 using FuturesSignalsBot.Models;
 
 namespace FuturesSignalsBot.Indicators.Smoothing;

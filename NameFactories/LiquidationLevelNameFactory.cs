@@ -1,4 +1,3 @@
-using System;
 using FuturesSignalsBot.Enums;
 
 namespace FuturesSignalsBot.NameFactories;
@@ -16,6 +15,8 @@ public static class LiquidationLevelNameFactory
             LiquidationLevelTopType.TmoX3Liquidation => "Ликвидация + ТМОX3",
             LiquidationLevelTopType.Low => "Toп_Лой",
             LiquidationLevelTopType.High => "Toп_Хай",
+            LiquidationLevelTopType.LongLiquidation => "LONG📈Liqudations",
+            LiquidationLevelTopType.ShortLiquidation => "SHORT📉Liqudations",
             _ => throw new ArgumentOutOfRangeException(nameof(type), type, null)
         };
     }

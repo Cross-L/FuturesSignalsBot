@@ -1,6 +1,4 @@
-﻿using System;
-using System.Threading.Tasks;
-using FuturesSignalsBot.Core.Config;
+﻿using FuturesSignalsBot.Core.Config;
 
 namespace FuturesSignalsBot.Core
 {

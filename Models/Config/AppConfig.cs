@@ -1,5 +1,3 @@
-using System.Collections.Generic;
-
 namespace FuturesSignalsBot.Models.Config;
 
 public class AppConfig

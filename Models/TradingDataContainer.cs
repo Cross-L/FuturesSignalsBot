@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 using FuturesSignalsBot.Models.Resistance;
 
 namespace FuturesSignalsBot.Models;

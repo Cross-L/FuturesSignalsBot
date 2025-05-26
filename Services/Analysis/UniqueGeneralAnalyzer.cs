@@ -1,7 +1,4 @@
-using System.Collections.Generic;
-using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
 using FuturesSignalsBot.Core;
 using FuturesSignalsBot.Enums;
 using FuturesSignalsBot.Models.IndicatorResults;
@@ -14,6 +11,8 @@ public static class UniqueGeneralAnalyzer
     private static string _report = string.Empty;
 
     public static List<PreliminaryImpulse> TopTmoX3Liquidation { get; private set; } = [];
+    
+    
 
     public static void AnalyzeDataList()
     {
@@ -23,11 +22,11 @@ public static class UniqueGeneralAnalyzer
             
         if (TmoIndexAnalyzer.OverSoldIndex < -8)
         {
-            sb.AppendLine($"• Индекс ТМО: {TmoIndexAnalyzer.OverSoldIndex:F2}% <b>LONG</b>\n");
+            sb.AppendLine($"• Индекс ТМО: {TmoIndexAnalyzer.OverSoldIndex:F2} <b>LONG</b>\n");
         }
         else if (TmoIndexAnalyzer.OverSoldIndex > 8)
         {
-            sb.AppendLine($"• Индекс ТМО: {TmoIndexAnalyzer.OverSoldIndex:F2}% <b>SHORT</b>\n");
+            sb.AppendLine($"• Индекс ТМО: {TmoIndexAnalyzer.OverSoldIndex:F2} <b>SHORT</b>\n");
         }
         
         if (MarketAbsorptionAnalyzer.Absorption.AverageHigherPocPercentageChange > 4)
@@ -59,6 +58,7 @@ public static class UniqueGeneralAnalyzer
                                impulse is { IsLong: false, IsMax: false, TmoX3: < -8 }) &&
                               impulse.LiquidationLevelNumber > 6)
             .ToList();
+        
     }
 
     public static async Task SendReport()

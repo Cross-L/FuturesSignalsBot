@@ -1,7 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 using FuturesSignalsBot.Indicators.Smoothing;
 using FuturesSignalsBot.Models;
 
@@ -14,10 +10,10 @@ public static class VolumeProfileManager
 
     private static readonly (decimal Key, decimal Multiplier)[] Levels =
     [
-        (2m, 1.02m), (3.3m, 1.033m), (5m, 1.05m), (6.6m, 1.066m),
-        (10m, 1.1m), (20m, 1.2m), (33.3m, 1.333m), (50m, 1.5m),
-        (-2m, 0.98m), (-3.3m, 0.967m), (-5m, 0.95m), (-6.6m, 0.934m),
-        (-10m, 0.9m), (-20m, 0.8m), (-33.3m, 0.666m), (-50m, 0.5m)
+        (5m, 1.05m), (10m, 1.1m), (20m, 1.2m), 
+        (33.3m, 1.333m), (50m, 1.5m),
+        (-5m, 0.95m), (-10m, 0.9m), (-20m, 0.8m), 
+        (-33.3m, 0.666m), (-50m, 0.5m)
     ];
 
     public static void InitializeVolumeLevels(TradingDataContainer container)
@@ -53,7 +49,7 @@ public static class VolumeProfileManager
         }
     }
 
-    public static decimal CalculateCustomVolumeProfileValue(List<CryptocurrencyDataItem> allData, int windowSize, 
+    public static decimal CalculateCustomVolumeProfileValue(List<CryptocurrencyDataItem> allData, int windowSize,
         decimal volumeArea, int rowSize)
     {
         if (allData.Count >= windowSize)
@@ -65,14 +61,15 @@ public static class VolumeProfileManager
         return 0;
     }
 
-    public static void CalculateRawVolumeProfilesForLastItem(TradingDataContainer container, VolumeConfiguration configuration)
+    public static void CalculateRawVolumeProfilesForLastItem(TradingDataContainer container,
+        VolumeConfiguration configuration)
     {
         var allData = container.ThirtyMinuteData;
         var startIndex = allData.Count - configuration.WindowSize;
         CalculateVolumeProfile(allData, startIndex, configuration.WindowSize);
         VsmaSmoothing.SmoothLastItem(container.ThirtyMinuteData, configuration.Period);
     }
-    
+
     public static void CalculateRawVolumeProfiles(TradingDataContainer container, VolumeConfiguration configuration)
     {
         var allData = container.ThirtyMinuteData;
@@ -82,7 +79,7 @@ public static class VolumeProfileManager
         Parallel.For(startWindow, totalWindows, i => CalculateVolumeProfile(allData, i, configuration.WindowSize));
         VsmaSmoothing.Smooth(allData, configuration.Period);
     }
-    
+
     private static (decimal RawPoc, decimal RawVaTop, decimal RawVaBottom) ComputeVolumeProfile(
         IReadOnlyList<CryptocurrencyDataItem> allData, int startIndex,
         int windowSize, decimal areaVolumePercent, int rowSize = RowSize)
@@ -307,7 +304,7 @@ public static class VolumeProfileManager
     private static decimal GetVolume(decimal y11, decimal y12, decimal y21, decimal y22, decimal height, decimal volume)
         => height == 0
             ? 0
-            : Math.Max(Math.Min(Math.Max(y11, y12), Math.Max(y21, y22)) - Math.Max(Math.Min(y11, y12), Math.Min(y21, y22)),
+            : Math.Max(
+                Math.Min(Math.Max(y11, y12), Math.Max(y21, y22)) - Math.Max(Math.Min(y11, y12), Math.Min(y21, y22)),
                 0) * volume / height;
-    
 }

@@ -1,6 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using FuturesSignalsBot.Commands.SignalCommands;
 using FuturesSignalsBot.Commands.SignalCommands.Absorption;
 using FuturesSignalsBot.Commands.SignalCommands.Correlation;

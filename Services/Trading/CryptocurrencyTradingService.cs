@@ -1,8 +1,4 @@
-using System;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 using FuturesSignalsBot.Core;
 using FuturesSignalsBot.Indicators.Smoothing;
 using FuturesSignalsBot.Models;

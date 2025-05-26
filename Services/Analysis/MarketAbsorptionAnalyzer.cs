@@ -1,7 +1,4 @@
-﻿using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-using FuturesSignalsBot.Core;
+﻿using FuturesSignalsBot.Core;
 using FuturesSignalsBot.Models.IndicatorResults;
 using FuturesSignalsBot.Services.Trading;
 

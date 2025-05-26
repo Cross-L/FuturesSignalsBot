@@ -1,5 +1,3 @@
-using System.Threading;
-using System.Threading.Tasks;
 using Telegram.Bot.Types;
 using User = FuturesSignalsBot.Core.User;
 

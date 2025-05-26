@@ -1,6 +1,4 @@
-using System;
 using System.Globalization;
-using System.Linq;
 using FuturesSignalsBot.Models;
 using FuturesSignalsBot.Models.IndicatorResults;
 

@@ -1,6 +1,8 @@
 using System.Diagnostics;
 using FuturesSignalsBot.Core;
+using FuturesSignalsBot.Enums;
 using FuturesSignalsBot.Services.Analysis;
+using FuturesSignalsBot.Services.Notifiers;
 
 namespace FuturesSignalsBot.Services.Trading;
 
@@ -44,6 +46,7 @@ public class TradingOrchestrator(
                         await CalculateInBatchesAsync(activeServices);
                         Console.WriteLine($"Расчеты выполнены: {DateTimeOffset.UtcNow:dd.MM.yyyy HH:mm:ss zzz}");
                         PrepareTradeNotifications(activeServices);
+                        await SendNotificationsAsync();
                     }
 
                     await Task.Delay(3000, cancellationTokenSource.Token);
@@ -115,6 +118,8 @@ public class TradingOrchestrator(
         try
         {
             await UniqueGeneralAnalyzer.SendReport();
+            await LiquidationNotifier.SendTopLiquidationData(LiquidationLevelTopType.LongLiquidation);
+            await LiquidationNotifier.SendTopLiquidationData(LiquidationLevelTopType.ShortLiquidation);
         }
         catch (Exception ex)
         {

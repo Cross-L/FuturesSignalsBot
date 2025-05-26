@@ -1,7 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 using FuturesSignalsBot.Core;
 using FuturesSignalsBot.Models;
 using FuturesSignalsBot.Models.Resistance;

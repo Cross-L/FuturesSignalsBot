@@ -1,15 +1,9 @@
-using System.Collections.Generic;
-using System.Linq;
 using FuturesSignalsBot.Models;
 
 namespace FuturesSignalsBot.Storage;
 
 public class CryptocurrenciesStorage
 {
-    public List<string> NewCurrencies { get; } = [];
-
-    public List<string> DeletedCurrencies { get; } = [];
-    
     public readonly List<Cryptocurrency> AllCryptocurrencies =
     [
         new("BTCUSDT"),        new("1000000MOGUSDT"), new("1000BONKUSDT"),
@@ -100,8 +94,5 @@ public class CryptocurrenciesStorage
         new("WUSDT"),          new("XAIUSDT"),        new("XTZUSDT"),
         new("ZETAUSDT"),       new("ZKUSDT"),         new("ZROUSDT")
     ];
-
-
-    public Cryptocurrency? GetCurrencyByName(string name) =>
-        AllCryptocurrencies.FirstOrDefault(currency => currency.Name.Equals(name));
+    
 }

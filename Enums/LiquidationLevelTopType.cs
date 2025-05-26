@@ -8,5 +8,7 @@ public enum LiquidationLevelTopType
     LowerPoc,
     TmoX3Liquidation,
     Low,
-    High
+    High,
+    ShortLiquidation,
+    LongLiquidation
 }

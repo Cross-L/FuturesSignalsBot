@@ -1,6 +1,3 @@
-using System;
-using System.Collections.Generic;
-
 namespace FuturesSignalsBot.Indicators;
 
 public static class TmoCalculator

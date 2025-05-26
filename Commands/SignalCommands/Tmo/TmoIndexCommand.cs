@@ -1,5 +1,3 @@
-using System.Threading;
-using System.Threading.Tasks;
 using FuturesSignalsBot.Core;
 using FuturesSignalsBot.Services.Analysis;
 using FuturesSignalsBot.Services.Trading;

@@ -1,4 +1,3 @@
-using System;
 using FuturesSignalsBot.Enums;
 
 namespace FuturesSignalsBot.NameFactories;

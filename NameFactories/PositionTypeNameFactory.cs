@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 using FuturesSignalsBot.Enums;
 
 namespace FuturesSignalsBot.NameFactories;

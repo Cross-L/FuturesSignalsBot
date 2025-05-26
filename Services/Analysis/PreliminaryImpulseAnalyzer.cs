@@ -1,5 +1,3 @@
-using System.Collections.Generic;
-using System.Linq;
 using FuturesSignalsBot.Models.IndicatorResults;
 
 namespace FuturesSignalsBot.Services.Analysis;
@@ -9,11 +7,15 @@ public static class PreliminaryImpulseAnalyzer
     public static List<PreliminaryImpulse> TopByHigh { get; private set; } = [];
     public static List<PreliminaryImpulse> TopByLow { get; private set; } = [];
     
-
+    public static List<PreliminaryImpulse> TopShortLiquidations { get; private set; } = [];
+    public static List<PreliminaryImpulse> TopLongLiquidations { get; private set; } = [];
+    
     public static void UpdateTopLists(List<PreliminaryImpulse?> preliminaryImpulses5M)
     {
         TopByHigh = GetTopImpulsesByLowHigh(preliminaryImpulses5M, 15, false);
         TopByLow = GetTopImpulsesByLowHigh(preliminaryImpulses5M, 15, true);
+        TopLongLiquidations = GetTopLiquidationImpulses(preliminaryImpulses5M, 10, true);
+        TopShortLiquidations = GetTopLiquidationImpulses(preliminaryImpulses5M, 10, false);
     }
 
     private static List<PreliminaryImpulse> GetTopImpulsesByLowHigh(
@@ -32,6 +34,16 @@ public static class PreliminaryImpulseAnalyzer
             sortedImpulses.Insert(0, btcImpulse);
         }
 
+        return sortedImpulses;
+    }
+
+    private static List<PreliminaryImpulse> GetTopLiquidationImpulses(
+        IEnumerable<PreliminaryImpulse?> preliminaryImpulses, int topCount, bool isLong)
+    {
+        var nonNullImpulses = preliminaryImpulses.OfType<PreliminaryImpulse>();
+        var sortedImpulses = nonNullImpulses
+            .Where(i => i.IsLong != isLong && i.WasIntersection)
+            .OrderByDescending(impulse => impulse.LiquidationLevelNumber).Take(topCount).ToList();
         return sortedImpulses;
     }
 }

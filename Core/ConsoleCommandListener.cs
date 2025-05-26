@@ -1,6 +1,3 @@
-using System;
-using System.Threading.Tasks;
-
 namespace FuturesSignalsBot.Core
 {
     public static class ConsoleCommandListener

@@ -1,6 +1,3 @@
-using System.Collections.Generic;
-using System.Linq;
-
 namespace FuturesSignalsBot.Models.Resistance;
 
 public class BitcoinSeries(bool isLong, List<CryptocurrencyDataItem> items)

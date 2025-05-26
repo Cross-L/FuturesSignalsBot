@@ -1,5 +1,4 @@
 using System.Collections.Concurrent;
-using FuturesSignalsBot.Models;
 using FuturesSignalsBot.Models.Config;
 using FuturesSignalsBot.Services.Analysis;
 using FuturesSignalsBot.Services.Binance;
@@ -89,10 +88,6 @@ public static class Trader
             await GlobalClients.TelegramBotService.SendMessageToAdminsAsync(
                 $"Валюты {string.Join(", ", removedCurrencies)} убраны из списка");
         }
-
-        var currenciesToAdd = GlobalClients.CryptocurrenciesStorage.NewCurrencies.Select
-            (currencyName => new Cryptocurrency(currencyName)).ToList();
-        GlobalClients.CryptocurrenciesStorage.AllCryptocurrencies.AddRange(currenciesToAdd);
     }
     
     private static async Task AssignUsers(Dictionary<string, UserConfig> userConfigs)

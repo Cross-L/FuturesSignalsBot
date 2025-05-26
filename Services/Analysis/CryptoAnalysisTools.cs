@@ -1,6 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using FuturesSignalsBot.Indicators;
 using FuturesSignalsBot.Models;
 using FuturesSignalsBot.Models.IndicatorResults;

@@ -1,5 +1,3 @@
-using System.Threading;
-using System.Threading.Tasks;
 using FuturesSignalsBot.Core;
 using FuturesSignalsBot.Enums;
 using FuturesSignalsBot.Services.Notifiers;

@@ -1,5 +1,3 @@
-using System;
-using System.Net.Http;
 using FuturesSignalsBot.Services.Bot;
 using FuturesSignalsBot.Storage;
 
