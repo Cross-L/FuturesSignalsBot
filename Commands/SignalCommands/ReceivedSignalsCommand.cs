@@ -28,6 +28,13 @@ public class ReceivedSignalsCommand: BaseCommand
               "<b>/short_tmo_inefficiency</b> - Неэффективность ТМО(+8.00)\n" +
               "<b>/high_top</b> - Оценка Хая\n" +
               "<b>/below_poc</b> - Ниже POC_0\n\n" +
+              "<b>💢 Z-Score:</b>\n" +
+              "<b>/long_score</b> - 💢Long Z-score\n" +
+              "<b>/short_score</b> - 💢Short Z-score\n" +
+              "<b>/long_deliq</b> - 🪫Long Deliq\n" +
+              "<b>/short_deliq</b> - 🔋Short Deliq\n" +
+              "<b>/long_open_max</b> - 🍎Long OpenMax\n" +
+              "<b>/short_open_min</b> - 🍏Short OpenMin\n" +
               "<b>🔄 Корреляция:</b>\n" +
               "<b>/series_correlation</b> - Наибольшая корреляция в рамках серии\n" +
               "<b>/max_correlation</b> - Наибольшая корреляция в рамках min/max BTC\n" +

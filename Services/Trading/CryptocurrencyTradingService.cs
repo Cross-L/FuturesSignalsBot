@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using FuturesSignalsBot.Core;
+using FuturesSignalsBot.Indicators;
 using FuturesSignalsBot.Indicators.Smoothing;
 using FuturesSignalsBot.Models;
 using FuturesSignalsBot.Services.Analysis;
@@ -32,7 +33,7 @@ public class CryptocurrencyTradingService
         {
             var fourHourResponse = await MarketDataService.GetCandleDataAsync(Cryptocurrency.Name, "4h", 500);
             var thirtyMinuteResponse = await MarketDataService.GetCandleDataAsync(Cryptocurrency.Name, "30m", 1000);
-            var fiveMinuteResponse = await MarketDataService.GetCandleDataAsync(Cryptocurrency.Name, "5m", 361);
+            var fiveMinuteResponse = await MarketDataService.GetCandleDataAsync(Cryptocurrency.Name, "5m", 500);
 
             if (fourHourResponse == null)
                 throw new Exception($"Не удалось получить 4-х часовые данные для {Cryptocurrency.Name}");
@@ -155,6 +156,15 @@ public class CryptocurrencyTradingService
                 }
 
                 LiquidationLevelAnalyzer.Update(_newThirtyMinuteCandleReceived);
+                var fiveMinuteData = Cryptocurrency.TradingDataContainer.FiveMinuteData;
+                var prices = fiveMinuteData
+                    .Skip(fiveMinuteData.Count - 72)
+                    .Take(72)
+                    .Select(data => data.Low)
+                    .ToList();
+
+                var score = ZScoreCalculator.CalculateScores(prices);
+                fiveMinuteData.Last().Score = score;
             }
             else
             {

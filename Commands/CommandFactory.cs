@@ -3,6 +3,7 @@ using FuturesSignalsBot.Commands.SignalCommands.Absorption;
 using FuturesSignalsBot.Commands.SignalCommands.Correlation;
 using FuturesSignalsBot.Commands.SignalCommands.Price;
 using FuturesSignalsBot.Commands.SignalCommands.Tmo;
+using FuturesSignalsBot.Commands.ZScore;
 
 namespace FuturesSignalsBot.Commands;
 
@@ -25,6 +26,12 @@ public static class CommandFactory
         new MaxExtremeCorrelationCommand(),
         new MinExtremeCorrelationCommand(),
         new AntiExtremeCorrelationCommand(),
+        new LongZScoreCommand(),
+        new ShortZScoreCommand(),
+        new LongZScorePercentageCommand(),
+        new ShortZScorePercentageCommand(),
+        new LongOpenMaxCommand(),
+        new ShortOpenMinCommand()
     ];
     
     public static BaseCommand? GetCommand(string commandName) 

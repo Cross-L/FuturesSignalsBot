@@ -17,4 +17,10 @@ public class PreliminaryImpulse(string currency, bool wasIntersection, Cryptocur
     public double TmoX3 { get; set; }
     public decimal PocPercentageChange { get; set; }
     public decimal ChangeOv { get; set; }
+    public (decimal ZScore, decimal InvertedZScore) Score { get; set; }
+    public decimal ZScoreRatio { get; set; } //Deliq Z-score
+    public decimal MinMaxPercentage { get; set; }
+    
+    public decimal AverageZPercentage { get; set; }
+    
 }

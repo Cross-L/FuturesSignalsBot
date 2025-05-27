@@ -55,6 +55,8 @@ public class LiquidationLevelAnalyzer(Cryptocurrency currency)
 
         var pocPercentageChange = CryptoAnalysisTools.CalculatePercentageChange
             (lastPoc, lastItem5M.Close);
+        var zPercentages = CryptocurrencyAnalysisEngine.CalculateZValues
+            (currency.TradingDataContainer.FiveMinuteData, !isLong5M);
         
         var lastItems = currency.TradingDataContainer.FiveMinuteData.TakeLast(360).ToList();
         var lastClose = lastItem5M.Close;
@@ -90,7 +92,7 @@ public class LiquidationLevelAnalyzer(Cryptocurrency currency)
                 0, lastItem30M.Tmo30
             );
         }
-
+        
         if (intersectionResult5M is not null)
         {
             PreliminaryImpulse5M = new PreliminaryImpulse(
@@ -102,7 +104,12 @@ public class LiquidationLevelAnalyzer(Cryptocurrency currency)
                 intersectionResult5M.Price,
                 _precision,
                 intersectionResult5M.LiquidationNumber, lastItem30M.Tmo30
+
             );
+            
+            var zScorePercentage = Math.Abs(lastItem5M.Score.ZScore) * 100 / 3;
+            PreliminaryImpulse5M.AverageZPercentage = (zPercentages.ZScoreRatio + zScorePercentage + intersectionResult5M.LiquidationPercentage +
+                                                       changeOv + zPercentages.MinMaxPercentage) / 5;
         }
         else
         {
@@ -121,6 +128,10 @@ public class LiquidationLevelAnalyzer(Cryptocurrency currency)
         PreliminaryImpulse30M.PocPercentageChange = pocPercentageChange;
         PreliminaryImpulse5M.PocPercentageChange = pocPercentageChange;
         PreliminaryImpulse5M.ChangeOv = changeOv;
+        PreliminaryImpulse5M.Score = lastItem5M.Score;
+        PreliminaryImpulse5M.ZScoreRatio = zPercentages.ZScoreRatio;
+        PreliminaryImpulse5M.MinMaxPercentage = zPercentages.MinMaxPercentage;
+        
 
         if (specifiedIntersectionResult is not null)
         {

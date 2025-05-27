@@ -10,5 +10,14 @@ public enum LiquidationLevelTopType
     Low,
     High,
     ShortLiquidation,
-    LongLiquidation
+    LongLiquidation,
+    ShortZScore,
+    LongZScore,
+    ShortZScorePercentage,
+    LongZScorePercentage,
+    LongOpenMax,
+    ShortOpenMin,
+    BestShorts,
+    BestLongs
+    
 }

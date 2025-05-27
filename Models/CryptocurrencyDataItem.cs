@@ -17,6 +17,7 @@ public class CryptocurrencyDataItem
     public double Tmo240 { get; set; }
     public decimal SmoothedClose { get; set; }
     public decimal Volume { get; init; }
+    public (decimal ZScore, decimal InvertedZScore) Score { get; set; }
     public ConcurrentDictionary<decimal,VolumeProfileData> VolumeProfileData { get; } = [];
     
 }

@@ -15,8 +15,16 @@ public static class LiquidationLevelNameFactory
             LiquidationLevelTopType.TmoX3Liquidation => "Ликвидация + ТМОX3",
             LiquidationLevelTopType.Low => "Toп_Лой",
             LiquidationLevelTopType.High => "Toп_Хай",
-            LiquidationLevelTopType.LongLiquidation => "LONG📈Liqudations",
-            LiquidationLevelTopType.ShortLiquidation => "SHORT📉Liqudations",
+            LiquidationLevelTopType.LongLiquidation => "(LONG📈)Liqudations",
+            LiquidationLevelTopType.ShortLiquidation => "(SHORT📉)Liqudations",
+            LiquidationLevelTopType.ShortZScore => "(SHORT📉)Z-score",
+            LiquidationLevelTopType.LongZScore => "(LONG📈)Z-score",
+            LiquidationLevelTopType.ShortZScorePercentage => "(SHORT📉)Deliq Z",
+            LiquidationLevelTopType.LongZScorePercentage => "(LONG📈)Deliq Z",
+            LiquidationLevelTopType.LongOpenMax => "(LONG📈)OpenMax",
+            LiquidationLevelTopType.ShortOpenMin => "(SHORT📉)OpenMin",
+            LiquidationLevelTopType.BestLongs => "BEST_LONGS🔫",
+            LiquidationLevelTopType.BestShorts => "BEST_SHORTS🔫",
             _ => throw new ArgumentOutOfRangeException(nameof(type), type, null)
         };
     }

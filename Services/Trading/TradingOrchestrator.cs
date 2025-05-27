@@ -120,6 +120,8 @@ public class TradingOrchestrator(
             await UniqueGeneralAnalyzer.SendReport();
             await LiquidationNotifier.SendTopLiquidationData(LiquidationLevelTopType.LongLiquidation);
             await LiquidationNotifier.SendTopLiquidationData(LiquidationLevelTopType.ShortLiquidation);
+            await LiquidationNotifier.SendTopLiquidationData(LiquidationLevelTopType.BestLongs);
+            await LiquidationNotifier.SendTopLiquidationData(LiquidationLevelTopType.BestShorts);
         }
         catch (Exception ex)
         {
