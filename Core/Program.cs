@@ -42,6 +42,7 @@ namespace FuturesSignalsBot.Core
         private static async Task OnProcessExit()
         {
             await GlobalClients.TelegramBotService.Stop();
+            await Trader.SaveUsersDataAsync();
             Console.WriteLine("Программа успешно завершила работу");
         }
     }

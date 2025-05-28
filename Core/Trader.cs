@@ -19,7 +19,7 @@ public static class Trader
     public static async Task Init(AppConfig appConfig)
     {
         GlobalClients.TelegramBotService = new TelegramBotService(appConfig);
-        await AssignUsers(appConfig.UserConfigs);
+        await AssignUsersAsync(appConfig.UserConfigs);
     }
 
     public static async Task ExecuteTradeAsync()
@@ -28,10 +28,10 @@ public static class Trader
 
         while (true)
         {
-            await UpdateDailyCryptocurrencyList();
+            await UpdateCurrenciesAsync();
 
             _cryptocurrencyTradingServices = GlobalClients.CryptocurrenciesStorage.AllCryptocurrencies.Select
-                (cryptocurrency => new CryptocurrencyTradingService(cryptocurrency, Users)).ToList();
+                (cryptocurrency => new CryptocurrencyTradingService(cryptocurrency)).ToList();
             await MarketDataService.LoadQuantitiesPrecision(GlobalClients.CryptocurrenciesStorage.AllCryptocurrencies);
             
             var currentTime = DateTimeOffset.UtcNow;
@@ -63,6 +63,7 @@ public static class Trader
             {
                 _cancellationTokenSource.Dispose();
                 _cancellationTokenSource = new CancellationTokenSource();
+                await SaveUsersDataAsync();
             }
 
             foreach (var cryptocurrencyTradingService in _cryptocurrencyTradingServices)
@@ -75,7 +76,7 @@ public static class Trader
         }
     }
 
-    private static async Task UpdateDailyCryptocurrencyList()
+    private static async Task UpdateCurrenciesAsync()
     {
         var removedCurrencies = GlobalClients.CryptocurrenciesStorage.AllCryptocurrencies
             .Where(currency => currency.Deactivated)
@@ -90,20 +91,32 @@ public static class Trader
         }
     }
     
-    private static async Task AssignUsers(Dictionary<string, UserConfig> userConfigs)
+    private static async Task AssignUsersAsync(Dictionary<string, UserConfig> userConfigs)
     {
         foreach (var (id, userConfig) in userConfigs)
         {
             var parsedId = long.Parse(id);
             var username = await GlobalClients.TelegramBotService.GetUsernameByIdAsync(parsedId);
             
-            var user = new User(username, userConfig.IsAdmin);
+            var user = new User(parsedId, username, userConfig.IsAdmin);
             
             if (!Users.TryAdd(parsedId, user))
             {
                 Console.WriteLine($"Не удалось добавить пользователя {user.Name} ID: {parsedId}");
             }
+
+            await user.DataService.LoadUserDataAsync();
         }
+    }
+    
+    public static async Task SaveUsersDataAsync()
+    {
+        foreach (var user in Users)
+        {
+            await user.Value.DataService.SaveUserDataAsync();
+        }
+
+        Console.WriteLine("Данные пользователей сохранены");
     }
 
     public static async Task<string> GetHealthStatus(long userId)

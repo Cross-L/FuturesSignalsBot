@@ -11,7 +11,7 @@ public class TradingOrchestrator(
     CancellationTokenSource cancellationTokenSource)
 {
     public static bool AreNotificationsPrepared { get; private set; }
-    
+
     private const int CalculationBatchSize = 30;
 
     public async Task StartAsync()
@@ -66,7 +66,7 @@ public class TradingOrchestrator(
             Console.WriteLine($"Ошибка при инициализации: {ex.Message}\n{ex.StackTrace}");
         }
     }
-    
+
     private static async Task CalculateInBatchesAsync(List<CryptocurrencyTradingService> services)
     {
         for (var i = 0; i < services.Count; i += CalculationBatchSize)
@@ -75,9 +75,14 @@ public class TradingOrchestrator(
             await Task.WhenAll(batch);
         }
     }
-    
+
     private List<CryptocurrencyTradingService> GetActiveServices()
-        => cryptocurrencyTradingServices.Where(s => !s.Cryptocurrency.Deactivated).ToList();
+        => cryptocurrencyTradingServices
+            .Where(s =>
+                !s.Cryptocurrency.Deactivated &&
+                Trader.Users.All(u =>
+                    u.Value.DataService.Data.DisabledCurrencies.Contains(s.Cryptocurrency.Name) is not true))
+            .ToList();
 
 
     private static void PrepareTradeNotifications(List<CryptocurrencyTradingService> activeServices)

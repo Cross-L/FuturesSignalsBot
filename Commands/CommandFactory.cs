@@ -31,7 +31,8 @@ public static class CommandFactory
         new LongZScorePercentageCommand(),
         new ShortZScorePercentageCommand(),
         new LongOpenMaxCommand(),
-        new ShortOpenMinCommand()
+        new ShortOpenMinCommand(),
+        new SwitchCurrencyCommand()
     ];
     
     public static BaseCommand? GetCommand(string commandName) 

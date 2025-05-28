@@ -116,7 +116,9 @@ public static class PreliminaryImpulseAnalyzer
     {
         var nonNullImpulses = preliminaryImpulses.OfType<PreliminaryImpulse>();
         var sortedImpulses = nonNullImpulses
-            .Where(i => i.IsLong != isLong && i.WasIntersection)
+            .Where(i => i.IsLong != isLong && 
+                        i.WasIntersection && 
+                        (isLong ? i.Score.ZScore < i.Score.InvertedZScore : i.Score.ZScore > i.Score.InvertedZScore))
             .OrderByDescending(impulse => impulse.AverageZPercentage)
             .Take(topCount)
             .ToList();

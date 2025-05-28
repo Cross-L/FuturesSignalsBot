@@ -146,9 +146,9 @@ public static class LiquidationNotifier
                 break;
 
             case "BestImpulses":
-                zScore = impulse.IsLong ? impulse.Score.ZScore : impulse.Score.InvertedZScore;
+                zScore = impulse.Score.ZScore;
                 zPercentageIcon = impulse.IsLong ? "🔋" : "🪫";
-                minMaxInfo = impulse.IsLong ? "🍎Op.max" : "🍏Op.min";
+                minMaxInfo = !impulse.IsLong ? "🍎Op.max" : "🍏Op.min";
                 var bestImpulsesLine = $"{baseFormat}(⚡️{impulse.AverageZPercentage:F1}) - {icon}{impulse.LiquidationLevel} 💢Zscr [{zScore:F5}], {zPercentageIcon}Del.Z[{impulse.ZScoreRatio:F1}%], {minMaxInfo}[{impulse.MinMaxPercentage:F1}%], changeOv[{impulse.ChangeOv:F2}%]";
                 sb.AppendLine(bestImpulsesLine);
                 break;

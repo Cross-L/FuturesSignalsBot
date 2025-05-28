@@ -19,7 +19,7 @@ public class CryptocurrencyTradingService
     public Exception? LastException { get; private set; }
     public bool TimeToUpdate => IsDataStale(Cryptocurrency.TradingDataContainer.FiveMinuteData, TimeSpan.FromMinutes(5));
     
-    public CryptocurrencyTradingService(Cryptocurrency cryptocurrency, ConcurrentDictionary<long, User> users)
+    public CryptocurrencyTradingService(Cryptocurrency cryptocurrency)
     {
         Cryptocurrency = cryptocurrency;
         LiquidationLevelAnalyzer = new LiquidationLevelAnalyzer(Cryptocurrency);
@@ -154,8 +154,7 @@ public class CryptocurrencyTradingService
                 {
                     CryptocurrencyAnalysisEngine.CalculateLastItemIndicators(Cryptocurrency);
                 }
-
-                LiquidationLevelAnalyzer.Update(_newThirtyMinuteCandleReceived);
+                
                 var fiveMinuteData = Cryptocurrency.TradingDataContainer.FiveMinuteData;
                 var prices = fiveMinuteData
                     .Skip(fiveMinuteData.Count - 72)
@@ -165,6 +164,8 @@ public class CryptocurrencyTradingService
 
                 var score = ZScoreCalculator.CalculateScores(prices);
                 fiveMinuteData.Last().Score = score;
+
+                LiquidationLevelAnalyzer.Update(_newThirtyMinuteCandleReceived);
             }
             else
             {

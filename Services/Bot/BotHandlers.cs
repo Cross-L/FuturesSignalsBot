@@ -1,5 +1,6 @@
 using FuturesSignalsBot.Commands;
 using FuturesSignalsBot.Core;
+using FuturesSignalsBot.Enums;
 using Telegram.Bot;
 using Telegram.Bot.Polling;
 using Telegram.Bot.Types;
@@ -27,6 +28,41 @@ public class BotHandlers: IUpdateHandler
                 if (currentUser is not null || message.Text.ToLower().Equals("/start"))
                 {
                     await command.ExecuteAsync(message, currentUser!, cancellationToken);
+                }
+            }
+            else
+            {
+                if (currentUser is not null && currentUser.DataService.Data.State == UserState.CurrencySwitching)
+                {
+                    var currencyName = message.Text!.Trim().ToUpper();
+                    if (!currencyName.Contains("USDT"))
+                    {
+                        currencyName += "USDT";
+                    }
+
+                    var targetCurrency = GlobalClients.CryptocurrenciesStorage.AllCryptocurrencies.FirstOrDefault
+                        (x => x.Name == currencyName);
+
+                    if (targetCurrency is not null)
+                    {
+                        if (currentUser.DataService.Data.DisabledCurrencies.Remove(currencyName))
+                        {
+                            await GlobalClients.TelegramBotService.SendMessageToChatAsync(message.Chat.Id,
+                                $"✅ Обработка сигналов для {currencyName} включена",
+                                cancellationToken: cancellationToken);
+                        }
+                        else
+                        {
+                            currentUser.DataService.Data.DisabledCurrencies.Add(currencyName);
+                            await GlobalClients.TelegramBotService.SendMessageToChatAsync(message.Chat.Id,
+                                $"❌ Обработка сигналов для {currencyName} остановлена", cancellationToken: cancellationToken);
+                        }
+                    }
+                    else
+                    {
+                        await GlobalClients.TelegramBotService.SendMessageToChatAsync(message.Chat.Id, $"Символа " +
+                            $"{currencyName} нету в списка обработки сигналов", cancellationToken: cancellationToken);
+                    }
                 }
             }
         }

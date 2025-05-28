@@ -34,7 +34,7 @@ public class ReceivedSignalsCommand: BaseCommand
               "<b>/long_deliq</b> - 🪫Long Deliq\n" +
               "<b>/short_deliq</b> - 🔋Short Deliq\n" +
               "<b>/long_open_max</b> - 🍎Long OpenMax\n" +
-              "<b>/short_open_min</b> - 🍏Short OpenMin\n" +
+              "<b>/short_open_min</b> - 🍏Short OpenMin\n\n" +
               "<b>🔄 Корреляция:</b>\n" +
               "<b>/series_correlation</b> - Наибольшая корреляция в рамках серии\n" +
               "<b>/max_correlation</b> - Наибольшая корреляция в рамках min/max BTC\n" +
