@@ -37,6 +37,7 @@ public class TelegramBotService
         var commands = new List<BotCommand>
         {
             new() { Command = "received_signals", Description = "Полученные сигналы" },
+            new() { Command = "switch_currency", Description = "Включить/Отключить обработку валюты" },
             new() { Command = "status", Description = "Статус бота" }
         };
 
@@ -57,7 +58,7 @@ public class TelegramBotService
         await _cancellationTokenSource.CancelAsync();
     }
 
-    public async Task SendMessageToAllUsersAsync(string message)
+    private async Task SendMessageToAllUsersAsync(string message)
     {
         foreach (var chatId in _userChatIds)
         {
