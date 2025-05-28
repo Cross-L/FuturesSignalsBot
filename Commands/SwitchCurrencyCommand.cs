@@ -14,6 +14,6 @@ public class SwitchCurrencyCommand: BaseCommand
         await GlobalClients.TelegramBotService.SendMessageToChatAsync(message.Chat.Id,
             "Введите валюту которую хотите отключить...", cancellationToken: cancellationToken);
 
-        currentUser.DataService.State = UserState.CurrencyDisabling;
+        currentUser.DataService.Data.State = UserState.CurrencySwitching;
     }
 }
