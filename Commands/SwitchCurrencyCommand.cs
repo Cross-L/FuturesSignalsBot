@@ -11,9 +11,10 @@ public class SwitchCurrencyCommand: BaseCommand
 
     public override async Task ExecuteAsync(Message message, User currentUser, CancellationToken cancellationToken)
     {
-        await GlobalClients.TelegramBotService.SendMessageToChatAsync(message.Chat.Id,
-            "Введите валюту которую хотите отключить...", cancellationToken: cancellationToken);
-
+        await GlobalClients.TelegramBotService.SendMessageToChatAsync(message.Chat.Id, 
+            $"❌ Отключены следующие символы: {string.Join(", ", currentUser.DataService.Data.DisabledCurrencies)}" +
+            $" \nВведите символ, который хотите включить или отключить:", 
+            cancellationToken: cancellationToken);
         currentUser.DataService.Data.State = UserState.CurrencySwitching;
     }
 }
