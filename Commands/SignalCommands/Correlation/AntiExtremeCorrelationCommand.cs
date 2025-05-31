@@ -20,7 +20,7 @@ public class AntiExtremeCorrelationCommand: BaseCommand
             return;
         }
         
-        if (!TradingOrchestrator.AreNotificationsPrepared)
+        if (!AnalysisOrchestrator.AreNotificationsPrepared)
         {
             await GlobalClients.TelegramBotService.SendMessageToChatAsync(message.Chat.Id,
                 "Выполняются расчеты. Повторите запрос позже...", cancellationToken: cancellationToken);

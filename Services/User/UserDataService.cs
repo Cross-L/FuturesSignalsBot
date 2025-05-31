@@ -20,9 +20,6 @@ public class UserDataService
         _baseFolder = Path.Combine(baseDirectory, "UserData", userId.ToString());
     }
     
-    /// <summary>
-    /// Метод для сохранения контейнера в файл.
-    /// </summary>
     public async Task SaveUserDataAsync()
     {
         var directoryPath = Path.Combine(_baseFolder);
@@ -36,10 +33,7 @@ public class UserDataService
         var json = JsonSerializer.Serialize(Data, jsonOptions);
         await File.WriteAllTextAsync(filePath, json);
     }
-
-    /// <summary>
-    /// Метод для загрузки контейнера из файла.
-    /// </summary>
+    
     public async Task LoadUserDataAsync()
     {
         var directoryPath = Path.Combine(_baseFolder);

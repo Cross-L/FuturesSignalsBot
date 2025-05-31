@@ -84,7 +84,7 @@ public class TelegramBotService
     
     public async Task SendMessageToAdminsAsync(string message)
     {
-        foreach (var (userId, user) in Trader.Users)
+        foreach (var (userId, user) in AnalysisCore.Users)
         {
             if (user.IsAdmin)
             {

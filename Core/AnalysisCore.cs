@@ -7,14 +7,14 @@ using FuturesSignalsBot.Services.Trading;
 
 namespace FuturesSignalsBot.Core;
 
-public static class Trader
+public static class AnalysisCore
 {
-    private static List<CryptocurrencyTradingService> _cryptocurrencyTradingServices = [];
+    private static List<CryptocurrencyAnalysisService> _cryptocurrencyAnalysisServices = [];
 
     private static CancellationTokenSource _cancellationTokenSource = new();
     public static ConcurrentDictionary<long, User> Users { get; } = [];
 
-    private static TradingOrchestrator? _tradingOrchestrator;
+    private static AnalysisOrchestrator? _analysisOrchestrator;
 
     public static async Task Init(AppConfig appConfig)
     {
@@ -30,8 +30,8 @@ public static class Trader
         {
             await UpdateCurrenciesAsync();
 
-            _cryptocurrencyTradingServices = GlobalClients.CryptocurrenciesStorage.AllCryptocurrencies.Select
-                (cryptocurrency => new CryptocurrencyTradingService(cryptocurrency)).ToList();
+            _cryptocurrencyAnalysisServices = GlobalClients.CryptocurrenciesStorage.AllCryptocurrencies.Select
+                (cryptocurrency => new CryptocurrencyAnalysisService(cryptocurrency)).ToList();
             await MarketDataService.LoadQuantitiesPrecision(GlobalClients.CryptocurrenciesStorage.AllCryptocurrencies);
             
             var currentTime = DateTimeOffset.UtcNow;
@@ -43,10 +43,10 @@ public static class Trader
 
             try
             {
-                _tradingOrchestrator =
-                    new TradingOrchestrator(_cryptocurrencyTradingServices, _cancellationTokenSource);
+                _analysisOrchestrator =
+                    new AnalysisOrchestrator(_cryptocurrencyAnalysisServices, _cancellationTokenSource);
 
-                var orchestratorTask = _tradingOrchestrator.StartAsync();
+                var orchestratorTask = _analysisOrchestrator.StartAsync();
                 var completedTask = await Task.WhenAny(orchestratorTask, cleanTimeDelay);
 
                 if (completedTask == cleanTimeDelay)
@@ -66,7 +66,7 @@ public static class Trader
                 await SaveUsersDataAsync();
             }
 
-            foreach (var cryptocurrencyTradingService in _cryptocurrencyTradingServices)
+            foreach (var cryptocurrencyTradingService in _cryptocurrencyAnalysisServices)
             {
                 cryptocurrencyTradingService.ClearData();
             }
@@ -120,7 +120,7 @@ public static class Trader
     }
 
     public static async Task<string> GetHealthStatus(long userId)
-        => _tradingOrchestrator is not null
-            ? await _tradingOrchestrator.GetServicesHealthReport(userId)
+        => _analysisOrchestrator is not null
+            ? await _analysisOrchestrator.GetServicesHealthReport(userId)
             : "Ожидание инициализации...";
 }

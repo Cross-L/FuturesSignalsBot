@@ -8,7 +8,7 @@ using FuturesSignalsBot.Services.Binance;
 
 namespace FuturesSignalsBot.Services.Trading;
 
-public class CryptocurrencyTradingService
+public class CryptocurrencyAnalysisService
 {
     private bool _newThirtyMinuteCandleReceived;
     
@@ -19,7 +19,7 @@ public class CryptocurrencyTradingService
     public Exception? LastException { get; private set; }
     public bool TimeToUpdate => IsDataStale(Cryptocurrency.TradingDataContainer.FiveMinuteData, TimeSpan.FromMinutes(5));
     
-    public CryptocurrencyTradingService(Cryptocurrency cryptocurrency)
+    public CryptocurrencyAnalysisService(Cryptocurrency cryptocurrency)
     {
         Cryptocurrency = cryptocurrency;
         LiquidationLevelAnalyzer = new LiquidationLevelAnalyzer(Cryptocurrency);

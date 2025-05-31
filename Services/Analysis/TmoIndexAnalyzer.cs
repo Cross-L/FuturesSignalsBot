@@ -31,7 +31,7 @@ public static class TmoIndexAnalyzer
     public static List<PreliminaryImpulse> TopByShortInefficiency { get; private set; } = [];
     public static List<PreliminaryImpulse> TopByLongInefficiency { get; private set; } = [];
     
-    public static void AnalyzeTmoIndicators(List<CryptocurrencyTradingService> activeServices)
+    public static void AnalyzeTmoIndicators(List<CryptocurrencyAnalysisService> activeServices)
     {
         _sumTmo30 = 0;
         _sumTmo60 = 0;
@@ -75,7 +75,7 @@ public static class TmoIndexAnalyzer
     }
 
 
-    public static void AnalyzeTmoInefficiency(List<CryptocurrencyTradingService> activeServices, 
+    public static void AnalyzeTmoInefficiency(List<CryptocurrencyAnalysisService> activeServices, 
         List<PreliminaryImpulse?> preliminaryImpulses30M, List<PreliminaryImpulse?> preliminaryImpulses5M,
         List<PreliminaryImpulse?> specifiedPreliminaryImpulses)
     {

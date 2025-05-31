@@ -18,7 +18,7 @@ public class BotHandlers: IUpdateHandler
             Console.WriteLine($"Пользователь: {update.Message.From?.Username}. Текст: {update.Message.Text} " +
                               $"Время: {DateTimeOffset.UtcNow:dd.MM.yyyy HH:mm:ss zzz}");
             var message = update.Message;
-            Trader.Users.TryGetValue(message.From!.Id, out var currentUser);
+            AnalysisCore.Users.TryGetValue(message.From!.Id, out var currentUser);
             
             var commandText = message.Text.ToLower().Split('@')[0].Trim();
             var command = CommandFactory.GetCommand(commandText);

@@ -26,8 +26,8 @@ namespace FuturesSignalsBot.Core
 
             try
             {
-                await Trader.Init(appConfig);
-                var tradingTask = Task.Run(Trader.ExecuteTradeAsync);
+                await AnalysisCore.Init(appConfig);
+                var tradingTask = Task.Run(AnalysisCore.ExecuteTradeAsync);
                 var commandListenerTask = Task.Run(ConsoleCommandListener.ListenForCommands);
                 await Task.WhenAll(tradingTask, commandListenerTask);
             }
@@ -42,7 +42,7 @@ namespace FuturesSignalsBot.Core
         private static async Task OnProcessExit()
         {
             await GlobalClients.TelegramBotService.Stop();
-            await Trader.SaveUsersDataAsync();
+            await AnalysisCore.SaveUsersDataAsync();
             Console.WriteLine("Программа успешно завершила работу");
         }
     }

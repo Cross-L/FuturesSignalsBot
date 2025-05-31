@@ -10,7 +10,7 @@ public class StatusCommand : BaseCommand
 
     public override async Task ExecuteAsync(Message message, User currentUser, CancellationToken cancellationToken)
     {
-        var runningServicesCount = await Trader.GetHealthStatus(message.Chat.Id);
+        var runningServicesCount = await AnalysisCore.GetHealthStatus(message.Chat.Id);
         
          await GlobalClients.TelegramBotService.SendMessageToChatAsync(message.Chat.Id,
              $"Работающих сервисов: {runningServicesCount}", cancellationToken: cancellationToken);

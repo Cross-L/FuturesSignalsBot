@@ -6,8 +6,8 @@ using FuturesSignalsBot.Services.Notifiers;
 
 namespace FuturesSignalsBot.Services.Trading;
 
-public class TradingOrchestrator(
-    IReadOnlyCollection<CryptocurrencyTradingService> cryptocurrencyTradingServices,
+public class AnalysisOrchestrator(
+    IReadOnlyCollection<CryptocurrencyAnalysisService> cryptocurrencyTradingServices,
     CancellationTokenSource cancellationTokenSource)
 {
     public static bool AreNotificationsPrepared { get; private set; }
@@ -67,7 +67,7 @@ public class TradingOrchestrator(
         }
     }
 
-    private static async Task CalculateInBatchesAsync(List<CryptocurrencyTradingService> services)
+    private static async Task CalculateInBatchesAsync(List<CryptocurrencyAnalysisService> services)
     {
         for (var i = 0; i < services.Count; i += CalculationBatchSize)
         {
@@ -76,16 +76,16 @@ public class TradingOrchestrator(
         }
     }
 
-    private List<CryptocurrencyTradingService> GetActiveServices()
+    private List<CryptocurrencyAnalysisService> GetActiveServices()
         => cryptocurrencyTradingServices
             .Where(s =>
                 !s.Cryptocurrency.Deactivated &&
-                Trader.Users.All(u =>
+                AnalysisCore.Users.All(u =>
                     u.Value.DataService.Data.DisabledCurrencies.Contains(s.Cryptocurrency.Name) is not true))
             .ToList();
 
 
-    private static void PrepareTradeNotifications(List<CryptocurrencyTradingService> activeServices)
+    private static void PrepareTradeNotifications(List<CryptocurrencyAnalysisService> activeServices)
     {
         var allResistanceInfos = activeServices
             .Where(service => service.Cryptocurrency.Name != "BTCUSDT")
