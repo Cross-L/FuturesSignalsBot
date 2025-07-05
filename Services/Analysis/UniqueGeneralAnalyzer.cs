@@ -64,12 +64,8 @@ public static class UniqueGeneralAnalyzer
     public static async Task SendReport()
     {
         if (_report.Equals("Список DATA пуст") && TopTmoX3Liquidation.Count == 0)
-        {
-            _report = "Списки пусты";
-            await GlobalClients.TelegramBotService.SendMessageToSecondGroup(_report);
             return;
-        }
-
+        
         await LiquidationNotifier.SendTopLiquidationData(LiquidationLevelTopType.TmoX3Liquidation);
         await GlobalClients.TelegramBotService.SendMessageToSecondGroup(_report);
     }
