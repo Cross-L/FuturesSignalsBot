@@ -13,7 +13,7 @@ public static class MarketAbsorptionAnalyzer
     public static List<string> LowerPocCurrencies { get; private set; } = [];
     public static MarketAbsorptionValues Absorption { get; private set; } = new();
     
-    public static void AnalyzeLastAbsorption(List<CryptocurrencyAnalysisService> activeServices, List<PreliminaryImpulse?> preliminaryImpulses5M)
+    public static void AnalyzeLastAbsorption(List<CryptocurrencyManagementService> activeServices, List<PreliminaryImpulse?> preliminaryImpulses5M)
     {
         var totalCurrencies = activeServices.Count;
         var nonNullImpulses = preliminaryImpulses5M.OfType<PreliminaryImpulse>().ToList();

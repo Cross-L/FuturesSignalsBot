@@ -7,7 +7,7 @@ using FuturesSignalsBot.Services.Notifiers;
 namespace FuturesSignalsBot.Services.Trading;
 
 public class AnalysisOrchestrator(
-    IReadOnlyCollection<CryptocurrencyAnalysisService> cryptocurrencyTradingServices,
+    IReadOnlyCollection<CryptocurrencyManagementService> cryptocurrencyManagementServices,
     CancellationTokenSource cancellationTokenSource)
 {
     public static bool AreNotificationsPrepared { get; private set; }
@@ -19,7 +19,7 @@ public class AnalysisOrchestrator(
         try
         {
             Console.WriteLine("Получение данных...");
-            await Task.WhenAll(cryptocurrencyTradingServices.Select(s => s.ReceiveTradingDataAsync()));
+            await Task.WhenAll(cryptocurrencyManagementServices.Select(s => s.ReceiveTradingDataAsync()));
 
             var activeServices = GetActiveServices();
             Console.WriteLine($"Данные получены: {DateTimeOffset.UtcNow:dd.MM.yyyy HH:mm:ss zzz}");
@@ -67,7 +67,7 @@ public class AnalysisOrchestrator(
         }
     }
 
-    private static async Task CalculateInBatchesAsync(List<CryptocurrencyAnalysisService> services)
+    private static async Task CalculateInBatchesAsync(List<CryptocurrencyManagementService> services)
     {
         for (var i = 0; i < services.Count; i += CalculationBatchSize)
         {
@@ -76,8 +76,8 @@ public class AnalysisOrchestrator(
         }
     }
 
-    private List<CryptocurrencyAnalysisService> GetActiveServices()
-        => cryptocurrencyTradingServices
+    private List<CryptocurrencyManagementService> GetActiveServices()
+        => cryptocurrencyManagementServices
             .Where(s =>
                 !s.Cryptocurrency.Deactivated &&
                 AnalysisCore.Users.All(u =>
@@ -85,7 +85,7 @@ public class AnalysisOrchestrator(
             .ToList();
 
 
-    private static void PrepareTradeNotifications(List<CryptocurrencyAnalysisService> activeServices)
+    private static void PrepareTradeNotifications(List<CryptocurrencyManagementService> activeServices)
     {
         var allResistanceInfos = activeServices
             .Where(service => service.Cryptocurrency.Name != "BTCUSDT")
@@ -136,9 +136,9 @@ public class AnalysisOrchestrator(
 
     public async Task<string> GetServicesHealthReport(long userId)
     {
-        var stableServicesCount = cryptocurrencyTradingServices.Count(service => !service.Cryptocurrency.Deactivated);
+        var stableServicesCount = cryptocurrencyManagementServices.Count(service => !service.Cryptocurrency.Deactivated);
 
-        foreach (var service in cryptocurrencyTradingServices.Where(service => service.Cryptocurrency.Deactivated))
+        foreach (var service in cryptocurrencyManagementServices.Where(service => service.Cryptocurrency.Deactivated))
         {
             if (service.LastException != null)
             {
@@ -162,6 +162,6 @@ public class AnalysisOrchestrator(
             }
         }
 
-        return $"{stableServicesCount} из {cryptocurrencyTradingServices.Count}";
+        return $"{stableServicesCount} из {cryptocurrencyManagementServices.Count}";
     }
 }

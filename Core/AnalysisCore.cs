@@ -9,7 +9,7 @@ namespace FuturesSignalsBot.Core;
 
 public static class AnalysisCore
 {
-    private static List<CryptocurrencyAnalysisService> _cryptocurrencyAnalysisServices = [];
+    private static List<CryptocurrencyManagementService> _cryptocurrencyManagementServices = [];
 
     private static CancellationTokenSource _cancellationTokenSource = new();
     public static ConcurrentDictionary<long, User> Users { get; } = [];
@@ -30,8 +30,8 @@ public static class AnalysisCore
         {
             await UpdateCurrenciesAsync();
 
-            _cryptocurrencyAnalysisServices = GlobalClients.CryptocurrenciesStorage.AllCryptocurrencies.Select
-                (cryptocurrency => new CryptocurrencyAnalysisService(cryptocurrency)).ToList();
+            _cryptocurrencyManagementServices = GlobalClients.CryptocurrenciesStorage.AllCryptocurrencies.Select
+                (cryptocurrency => new CryptocurrencyManagementService(cryptocurrency)).ToList();
             await MarketDataService.LoadQuantitiesPrecision(GlobalClients.CryptocurrenciesStorage.AllCryptocurrencies);
             
             var currentTime = DateTimeOffset.UtcNow;
@@ -44,7 +44,7 @@ public static class AnalysisCore
             try
             {
                 _analysisOrchestrator =
-                    new AnalysisOrchestrator(_cryptocurrencyAnalysisServices, _cancellationTokenSource);
+                    new AnalysisOrchestrator(_cryptocurrencyManagementServices, _cancellationTokenSource);
 
                 var orchestratorTask = _analysisOrchestrator.StartAsync();
                 var completedTask = await Task.WhenAny(orchestratorTask, cleanTimeDelay);
@@ -66,7 +66,7 @@ public static class AnalysisCore
                 await SaveUsersDataAsync();
             }
 
-            foreach (var cryptocurrencyTradingService in _cryptocurrencyAnalysisServices)
+            foreach (var cryptocurrencyTradingService in _cryptocurrencyManagementServices)
             {
                 cryptocurrencyTradingService.ClearData();
             }

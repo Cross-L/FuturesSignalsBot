@@ -12,14 +12,10 @@ public static class MarketDataService
 {
     private static readonly ApiRateLimiter DataReceivingLimiter =
         new(maxConcurrentRequests: 10, delay: TimeSpan.FromMilliseconds(100));
-    
+
     private static readonly ApiRateLimiter DataUpdatingLimiter =
         new(maxConcurrentRequests: 30, delay: TimeSpan.FromMilliseconds(30));
-    
-    public static ExchangeInfo? ExchangeInfo { get; private set; }
 
-    public static async Task UpdateExchangeInfo() => ExchangeInfo = await GetExchangeInfoAsync();
-    
 
     public static async Task<string?> GetCandleDataAsync(string symbol, string interval, int limit)
     {
@@ -48,12 +44,21 @@ public static class MarketDataService
                     return await response.Content.ReadAsStringAsync();
                 }
 
-                return null;
+                // Capture detailed error information
+                var errorContent = await response.Content.ReadAsStringAsync();
+                throw new HttpRequestException(
+                    $"Failed to retrieve candle data for symbol: {symbol}, interval: {interval}, limit: {limit}. " +
+                    $"HTTP Status: {response.StatusCode}, Reason: {response.ReasonPhrase}, Content: {errorContent}");
+            }
+            catch (HttpRequestException ex)
+            {
+                throw;
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Ошибка во время получения данных: {ex.Message}\nStackTrace: {ex.StackTrace}");
-                return null;
+                throw new Exception(
+                    $"Error retrieving candle data for symbol: {symbol}, interval: {interval}, limit: {limit}. " +
+                    $"Error: {ex.Message}", ex);
             }
         });
     }
@@ -82,7 +87,7 @@ public static class MarketDataService
                 var queryString =
                     $"symbol={symbol}&interval={interval}&limit=1&startTime={startTime}&endTime={endTime}";
                 var requestUrl = $"{endpoint}?{queryString}";
-                
+
                 using var response = await DataUpdatingLimiter.ExecuteAsync(async () =>
                     await GlobalClients.HttpClientShortTimeout.GetAsync(requestUrl));
 
@@ -155,54 +160,6 @@ public static class MarketDataService
     }
 
 
-    public static async Task<decimal> GetCurrentMarketPriceAsync(string symbol)
-    {
-        var endpoint = $"/fapi/v1/ticker/price?symbol={symbol}";
-        using var response = await GlobalClients.HttpClientShortTimeout.GetAsync(endpoint);
-        var responseData = await response.Content.ReadAsStringAsync();
-
-        if (response.IsSuccessStatusCode)
-        {
-            var ticker = JsonConvert.DeserializeObject<TickerData>(responseData);
-            var price = ticker?.Price;
-
-            if (price != null)
-            {
-                return price.Value;
-            }
-        }
-
-        return 0;
-    }
-
-    private static async Task<ExchangeInfo?> GetExchangeInfoAsync()
-    {
-        var response = await GlobalClients.HttpClientShortTimeout.GetAsync("/fapi/v1/exchangeInfo");
-    
-        if (!response.IsSuccessStatusCode)
-        {
-            await GlobalClients.TelegramBotService.SendMessageToAdminsAsync("Не удалось получить Exchange Info!");
-            return null;
-        }
-
-        var content = await response.Content.ReadAsStringAsync();
-        var tempExchangeInfo = System.Text.Json.JsonSerializer.Deserialize<TempExchangeInfo>(content);
-        if (tempExchangeInfo?.Symbols == null)
-            return null;
-
-        var exchangeInfo = new ExchangeInfo
-        {
-            Symbols = tempExchangeInfo.Symbols
-                .Where(s => s.Symbol != null)
-                .ToDictionary(s => s.Symbol!, s => new SymbolInfo
-                {
-                    Symbol = s.Symbol,
-                    Filters = s.Filters?.Where(f => f.FilterType == "PRICE_FILTER").ToList()
-                })
-        };
-        return exchangeInfo;
-    }
-    
     public static async Task LoadQuantitiesPrecision(List<Cryptocurrency> cryptocurrencies)
     {
         var httpClient = new HttpClient();
@@ -224,11 +181,5 @@ public static class MarketDataService
                 cryptocurrency.QuantityPrecision = BinanceHttpHelper.CalculatePrecision(stepSize!);
             }
         }
-    }
-    
-    private class TempExchangeInfo
-    {
-        [JsonPropertyName("symbols")]
-        public List<SymbolInfo>? Symbols { get; set; }
     }
 }
