@@ -26,9 +26,7 @@ public static class CorrelationTrendAnalyzer
             var firstBitcoinExtremeItem = generalSeries.FirstExtremeItem;
             var secondBitcoinExtremeItem = generalSeries.SecondExtremeItem;
 
-            CryptocurrencyDataItem bitcoinMaxItem;
-            CryptocurrencyDataItem bitcoinMinItem;
-
+            // Validate that the last candle's OpenTime matches
             if (!btcAllData.Last().OpenTime.Equals(allData.Last().OpenTime))
             {
                 var message =
@@ -39,94 +37,96 @@ public static class CorrelationTrendAnalyzer
                 return null;
             }
 
-            if (firstBitcoinExtremeItem.SmoothedClose > secondBitcoinExtremeItem.SmoothedClose)
-            {
-                bitcoinMaxItem = firstBitcoinExtremeItem;
-                bitcoinMinItem = secondBitcoinExtremeItem;
-            }
-            else
-            {
-                bitcoinMaxItem = secondBitcoinExtremeItem;
-                bitcoinMinItem = firstBitcoinExtremeItem;
-            }
+            // Determine max and min Bitcoin extreme items
+            var bitcoinMaxItem =
+                firstBitcoinExtremeItem.SmoothedClose > secondBitcoinExtremeItem.SmoothedClose
+                    ? firstBitcoinExtremeItem
+                    : secondBitcoinExtremeItem;
+            var bitcoinMinItem =
+                firstBitcoinExtremeItem.SmoothedClose > secondBitcoinExtremeItem.SmoothedClose
+                    ? secondBitcoinExtremeItem
+                    : firstBitcoinExtremeItem;
 
-            List<CryptocurrencyDataItem> bitcoinSeriesRange;
+            // Get Bitcoin series range based on OpenTime
+            DateTimeOffset startTime, endTime;
 
             if (generalSeries.IsCorrectCase)
             {
-                var startIndex = generalSeries.FirstItem.Index;
-                var count = generalSeries.LastItem.Index - startIndex + 1;
-                if (startIndex < 0 || count <= 0 || startIndex + count > btcAllData.Count)
-                {
-                    var message = $"Ошибка диапазона bitcoinSeriesRange: startIndex={startIndex}, count={count}, " +
-                                  $"Размер btcAllData={btcAllData.Count}, Последний OpenTime={btcAllData.Last().OpenTime}";
-                    Console.WriteLine(message);
-                    await GlobalClients.TelegramBotService.SendMessageToAdminsAsync(message);
-                    return null;
-                }
-
-                bitcoinSeriesRange = btcAllData.GetRange(startIndex, count);
+                startTime = generalSeries.FirstItem.OpenTime;
+                endTime = generalSeries.LastItem.OpenTime;
             }
             else
             {
-                var startIndex = generalSeries.CorrectFirstItem!.Index;
-                var count = generalSeries.CorrectLastItem!.Index - startIndex + 1;
-                if (startIndex < 0 || count <= 0 || startIndex + count > btcAllData.Count)
-                {
-                    var message =
-                        $"Ошибка диапазона bitcoinSeriesRange (CorrectCase): startIndex={startIndex}, count={count}, " +
-                        $"Размер btcAllData={btcAllData.Count}, Последний OpenTime={btcAllData.Last().OpenTime}";
-                    Console.WriteLine(message);
-                    await GlobalClients.TelegramBotService.SendMessageToAdminsAsync(message);
-                    return null;
-                }
-
-                bitcoinSeriesRange = btcAllData.GetRange(startIndex, count);
+                startTime = generalSeries.CorrectFirstItem!.OpenTime;
+                endTime = generalSeries.CorrectLastItem!.OpenTime;
             }
 
-            var (bitcoinMin, bitcoinMax) = GetMinMax(bitcoinSeriesRange);
-
-            CryptocurrencyDataItem firstBitcoinSeriesItem;
-            CryptocurrencyDataItem secondBitcoinSeriesItem;
-
-            if (bitcoinMax.Index > bitcoinMin.Index)
+            // Validate time range
+            if (startTime > endTime)
             {
-                firstBitcoinSeriesItem = bitcoinMin;
-                secondBitcoinSeriesItem = bitcoinMax;
-            }
-            else
-            {
-                firstBitcoinSeriesItem = bitcoinMax;
-                secondBitcoinSeriesItem = bitcoinMin;
-            }
-
-            var bitcoinSeriesChange = CryptoAnalysisTools.CalculatePositivePercentageChange
-                (firstBitcoinSeriesItem.SmoothedClose, secondBitcoinSeriesItem.SmoothedClose);
-
-            var bitcoinExtremeChange = CryptoAnalysisTools.CalculatePositivePercentageChange
-                (firstBitcoinExtremeItem.SmoothedClose, secondBitcoinExtremeItem.SmoothedClose);
-
-            var altStartIndex = generalSeries.FirstItem.Index;
-            var altCount = generalSeries.LastItem.Index - altStartIndex + 1;
-            if (altStartIndex < 0 || altCount <= 0 || altStartIndex + altCount > allData.Count)
-            {
-                var message = $"Ошибка диапазона altSeriesRange: startIndex={altStartIndex}, count={altCount}, " +
-                              $"Размер allData={allData.Count}, Последний OpenTime={allData.Last().OpenTime}";
+                var message = $"Ошибка диапазона bitcoinSeriesRange: startTime={startTime}, endTime={endTime}, " +
+                              $"Размер btcAllData={btcAllData.Count}, Последний OpenTime={btcAllData.Last().OpenTime}";
                 Console.WriteLine(message);
                 await GlobalClients.TelegramBotService.SendMessageToAdminsAsync(message);
                 return null;
             }
 
-            var altSeriesRange = allData.GetRange(altStartIndex, altCount);
+            // Filter btcAllData by OpenTime range
+            var bitcoinSeriesRange = btcAllData
+                .Where(item => item.OpenTime >= startTime && item.OpenTime <= endTime)
+                .OrderBy(item => item.OpenTime)
+                .ToList();
 
+            if (!bitcoinSeriesRange.Any())
+            {
+                var message = $"Пустой диапазон bitcoinSeriesRange: startTime={startTime}, endTime={endTime}, " +
+                              $"Размер btcAllData={btcAllData.Count}, Последний OpenTime={btcAllData.Last().OpenTime}";
+                Console.WriteLine(message);
+                await GlobalClients.TelegramBotService.SendMessageToAdminsAsync(message);
+                return null;
+            }
+
+            // Get min and max from bitcoin series range
+            var (bitcoinMin, bitcoinMax) = GetMinMax(bitcoinSeriesRange);
+
+            CryptocurrencyDataItem firstBitcoinSeriesItem =
+                bitcoinMax.OpenTime > bitcoinMin.OpenTime ? bitcoinMin : bitcoinMax;
+            CryptocurrencyDataItem secondBitcoinSeriesItem =
+                bitcoinMax.OpenTime > bitcoinMin.OpenTime ? bitcoinMax : bitcoinMin;
+
+            // Calculate Bitcoin series and extreme percentage changes
+            var bitcoinSeriesChange = CryptoAnalysisTools.CalculatePositivePercentageChange(
+                firstBitcoinSeriesItem.SmoothedClose, secondBitcoinSeriesItem.SmoothedClose);
+
+            var bitcoinExtremeChange = CryptoAnalysisTools.CalculatePositivePercentageChange(
+                firstBitcoinExtremeItem.SmoothedClose, secondBitcoinExtremeItem.SmoothedClose);
+
+            // Get altcoin series range based on OpenTime
+            var altSeriesRange = allData
+                .Where(item =>
+                    item.OpenTime >= generalSeries.FirstItem.OpenTime &&
+                    item.OpenTime <= generalSeries.LastItem.OpenTime)
+                .OrderBy(item => item.OpenTime)
+                .ToList();
+
+            if (!altSeriesRange.Any())
+            {
+                var message =
+                    $"Пустой диапазон altSeriesRange: startTime={generalSeries.FirstItem.OpenTime}, endTime={generalSeries.LastItem.OpenTime}, " +
+                    $"Размер allData={allData.Count}, Последний OpenTime={allData.Last().OpenTime}";
+                Console.WriteLine(message);
+                await GlobalClients.TelegramBotService.SendMessageToAdminsAsync(message);
+                return null;
+            }
+
+            // Get min and max from altcoin series range
             var (coinMin, coinMax) = GetMinMax(altSeriesRange);
 
-            var firstItem = coinMin.Index < coinMax.Index ? coinMin : coinMax;
-            var lastItem = coinMin.Index < coinMax.Index ? coinMax : coinMin;
+            var firstItem = coinMin.OpenTime < coinMax.OpenTime ? coinMin : coinMax;
+            var lastItem = coinMin.OpenTime < coinMax.OpenTime ? coinMax : coinMin;
 
-            var altSeriesChange = coinMax.Index > coinMin.Index
-                ? CryptoAnalysisTools.CalculatePositivePercentageChange(coinMin.SmoothedClose, coinMax.SmoothedClose)
-                : CryptoAnalysisTools.CalculatePositivePercentageChange(coinMax.SmoothedClose, coinMin.SmoothedClose);
+            var altSeriesChange = CryptoAnalysisTools.CalculatePositivePercentageChange(
+                firstItem.SmoothedClose, lastItem.SmoothedClose);
 
             if (altSeriesChange == 0)
             {
@@ -138,53 +138,63 @@ public static class CorrelationTrendAnalyzer
                 await GlobalClients.TelegramBotService.SendMessageToAdminsAsync(message);
             }
 
-            var extremeStartIndex = firstBitcoinExtremeItem.Index;
-            var extremeCount = secondBitcoinExtremeItem.Index - extremeStartIndex + 1;
-            if (extremeStartIndex < 0 || extremeCount <= 0 || extremeStartIndex + extremeCount > allData.Count)
+            // Get extreme range for altcoin and Bitcoin based on OpenTime
+            var extremeStartTime = firstBitcoinExtremeItem.OpenTime;
+            var extremeEndTime = secondBitcoinExtremeItem.OpenTime;
+
+            if (extremeStartTime > extremeEndTime)
             {
                 var message =
-                    $"Ошибка диапазона extremeAltRange: startIndex={extremeStartIndex}, count={extremeCount}, " +
-                    $"Размер allData={allData.Count}, Последний OpenTime={allData.Last().OpenTime}";
-                Console.WriteLine(message);
-                await GlobalClients.TelegramBotService.SendMessageToAdminsAsync(message);
-                return null;
-            }
-
-            var extremeAltRange = allData.GetRange(extremeStartIndex, extremeCount);
-
-            if (extremeStartIndex < 0 || extremeCount <= 0 || extremeStartIndex + extremeCount > btcAllData.Count)
-            {
-                var message =
-                    $"Ошибка диапазона extremeBtcRange: startIndex={extremeStartIndex}, count={extremeCount}, " +
+                    $"Ошибка диапазона extremeRange: startTime={extremeStartTime}, endTime={extremeEndTime}, " +
                     $"Размер btcAllData={btcAllData.Count}, Последний OpenTime={btcAllData.Last().OpenTime}";
                 Console.WriteLine(message);
                 await GlobalClients.TelegramBotService.SendMessageToAdminsAsync(message);
                 return null;
             }
 
-            var extremeBtcRange = btcAllData.GetRange(extremeStartIndex, extremeCount);
+            var extremeAltRange = allData
+                .Where(item => item.OpenTime >= extremeStartTime && item.OpenTime <= extremeEndTime)
+                .OrderBy(item => item.OpenTime)
+                .ToList();
 
+            var extremeBtcRange = btcAllData
+                .Where(item => item.OpenTime >= extremeStartTime && item.OpenTime <= extremeEndTime)
+                .OrderBy(item => item.OpenTime)
+                .ToList();
+
+            if (!extremeAltRange.Any() || !extremeBtcRange.Any())
+            {
+                var message =
+                    $"Пустой диапазон extremeRange: altRange={extremeAltRange.Count}, btcRange={extremeBtcRange.Count}, " +
+                    $"startTime={extremeStartTime}, endTime={extremeEndTime}, " +
+                    $"Размер allData={allData.Count}, Размер btcAllData={btcAllData.Count}";
+                Console.WriteLine(message);
+                await GlobalClients.TelegramBotService.SendMessageToAdminsAsync(message);
+                return null;
+            }
+
+            // Get min and max from extreme altcoin range
             var (coinMin1, coinMax1) = GetMinMax(extremeAltRange);
 
-            var firstItem1 = coinMin1.Index < coinMax1.Index ? coinMin1 : coinMax1;
-            var lastItem1 = coinMin1.Index < coinMax1.Index ? coinMax1 : coinMin1;
+            var firstItem1 = coinMin1.OpenTime < coinMax1.OpenTime ? coinMin1 : coinMax1;
+            var lastItem1 = coinMin1.OpenTime < coinMax1.OpenTime ? coinMax1 : coinMin1;
 
-            var extremeCoinPercentageChange =
-                CryptoAnalysisTools.CalculatePositivePercentageChange(firstItem1.SmoothedClose,
-                    lastItem1.SmoothedClose);
+            var extremeCoinPercentageChange = CryptoAnalysisTools.CalculatePositivePercentageChange(
+                firstItem1.SmoothedClose, lastItem1.SmoothedClose);
 
+            // Determine trend directions
             var isBtcExtremeIncreased = firstBitcoinExtremeItem.SmoothedClose < secondBitcoinExtremeItem.SmoothedClose;
             var isBtcSeriesIncreased = firstBitcoinSeriesItem.SmoothedClose < secondBitcoinSeriesItem.SmoothedClose;
-
             var isAltCoinSeriesIncreased = firstItem.SmoothedClose < lastItem.SmoothedClose;
             var isAltCoinMinMaxIncreased = firstItem1.SmoothedClose < lastItem1.SmoothedClose;
 
-            var basicInfo = new BasicResistanceInfo(generalSeries.Index, currencyName, generalSeries.FirstItem,
-                generalSeries.LastItem,
+            // Create result
+            var basicInfo = new BasicResistanceInfo(
+                generalSeries.Index, currencyName, generalSeries.FirstItem, generalSeries.LastItem,
                 isBtcSeriesIncreased, isBtcExtremeIncreased, isAltCoinMinMaxIncreased, isAltCoinSeriesIncreased,
                 extremeCoinPercentageChange, bitcoinSeriesChange, bitcoinExtremeChange,
-                altSeriesChange, bitcoinMinItem, bitcoinMaxItem, firstItem1,
-                lastItem1, extremeAltRange, extremeBtcRange);
+                altSeriesChange, bitcoinMinItem, bitcoinMaxItem, firstItem1, lastItem1,
+                extremeAltRange, extremeBtcRange);
 
             return basicInfo;
         }

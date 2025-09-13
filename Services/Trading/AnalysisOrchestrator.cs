@@ -19,13 +19,17 @@ public class AnalysisOrchestrator(
         try
         {
             Console.WriteLine("Получение данных...");
-            await Task.WhenAll(cryptocurrencyManagementServices.Select(s => s.ReceiveTradingDataAsync()));
+            await RunWithPriorityAsync(cryptocurrencyManagementServices, s => s.ReceiveTradingDataAsync());
 
             var activeServices = GetActiveServices();
             Console.WriteLine($"Данные получены: {DateTimeOffset.UtcNow:dd.MM.yyyy HH:mm:ss zzz}");
-
-            await Task.WhenAll(activeServices.Select(s => s.CalculateAsync()));
+            
+            await CalculateInBatchesAsync(activeServices);
             Console.WriteLine($"Расчеты выполнены: {DateTimeOffset.UtcNow:dd.MM.yyyy HH:mm:ss zzz}");
+
+            PrepareTradeNotifications(activeServices);
+            await SendNotificationsAsync();
+            
             PrepareTradeNotifications(activeServices);
             Console.WriteLine($"Предварительные операции завершены: {DateTimeOffset.UtcNow:dd.MM.yyyy HH:mm:ss zzz}");
             await SendNotificationsAsync();
@@ -38,17 +42,17 @@ public class AnalysisOrchestrator(
 
                     if (activeServices.All(service => service.TimeToUpdate))
                     {
-                        await Task.WhenAll(activeServices.Select(s => s.UpdateDataAsync()));
+                        await RunWithPriorityAsync(activeServices, s => s.UpdateDataAsync());
                         activeServices = GetActiveServices();
-                        Console.WriteLine(
-                            $"Обновление данных завершено: {DateTimeOffset.UtcNow:dd.MM.yyyy HH:mm:ss zzz}");
+                        Console.WriteLine($"Обновление данных завершено: {DateTimeOffset.UtcNow:dd.MM.yyyy HH:mm:ss zzz}");
 
                         await CalculateInBatchesAsync(activeServices);
                         Console.WriteLine($"Расчеты выполнены: {DateTimeOffset.UtcNow:dd.MM.yyyy HH:mm:ss zzz}");
+
                         PrepareTradeNotifications(activeServices);
                         await SendNotificationsAsync();
                     }
-
+                    
                     await Task.Delay(3000, cancellationTokenSource.Token);
                 }
                 catch (TaskCanceledException)
@@ -60,11 +64,27 @@ public class AnalysisOrchestrator(
                     Console.WriteLine($"Ошибка в оркестраторе: {ex.Message}\n{ex.StackTrace}");
                 }
             }
+
         }
         catch (Exception ex)
         {
             Console.WriteLine($"Ошибка при инициализации: {ex.Message}\n{ex.StackTrace}");
         }
+    }
+    
+    private static async Task RunWithPriorityAsync(
+        IReadOnlyCollection<CryptocurrencyManagementService> services,
+        Func<CryptocurrencyManagementService, Task> action)
+    {
+        var btc = services.FirstOrDefault(s => 
+            s.Cryptocurrency.Name.Equals("BTCUSDT", StringComparison.OrdinalIgnoreCase));
+
+        var others = services.Where(s => s != btc).ToList();
+
+        if (btc is not null)
+            await action(btc);
+
+        await Task.WhenAll(others.Select(action));
     }
 
     private static async Task CalculateInBatchesAsync(List<CryptocurrencyManagementService> services)
