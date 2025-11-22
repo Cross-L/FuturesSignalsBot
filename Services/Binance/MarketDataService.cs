@@ -1,9 +1,5 @@
-using System.Text;
-using System.Text.Json.Serialization;
 using FuturesSignalsBot.Core;
 using FuturesSignalsBot.Models;
-using FuturesSignalsBot.Models.Responses;
-using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
 namespace FuturesSignalsBot.Services.Binance;
@@ -11,14 +7,20 @@ namespace FuturesSignalsBot.Services.Binance;
 public static class MarketDataService
 {
     private static readonly ApiRateLimiter DataReceivingLimiter =
-        new(maxConcurrentRequests: 10, delay: TimeSpan.FromMilliseconds(100));
+        new(maxConcurrentRequests: 5, delay: TimeSpan.FromMilliseconds(250));
 
     private static readonly ApiRateLimiter DataUpdatingLimiter =
-        new(maxConcurrentRequests: 30, delay: TimeSpan.FromMilliseconds(30));
+        new(maxConcurrentRequests: 10, delay: TimeSpan.FromMilliseconds(100));
 
+    private const int MaxWeightPerMinute = 2400;
+    private const int SafeWeightThreshold = 2100;
+    private static volatile int _currentUsedWeight = 0;
+    private static readonly Lock WeightLock = new();
 
     public static async Task<string?> GetCandleDataAsync(string symbol, string interval, int limit)
     {
+        await WaitForWeightCapacityAsync();
+
         return await DataReceivingLimiter.ExecuteAsync(async () =>
         {
             const string endpoint = "/fapi/v1/klines";
@@ -33,32 +35,40 @@ public static class MarketDataService
                     .CalculateStartTime(roundedTime, intervalCount, intervalType, limit)
                     .ToUnixTimeMilliseconds();
 
-                var queryString =
-                    $"symbol={symbol}&interval={interval}&limit={limit}&startTime={startTimeUnix}&endTime={endTimeUnix}";
+                var queryString = $"symbol={symbol}&interval={interval}&limit={limit}&startTime={startTimeUnix}&endTime={endTimeUnix}";
                 var requestUrl = $"{endpoint}?{queryString}";
 
-                using var response = await GlobalClients.HttpClientBigTimeout.GetAsync(requestUrl);
+                using var request = new HttpRequestMessage(HttpMethod.Get, requestUrl);
+                using var response = await GlobalClients.HttpClientBigTimeout.SendAsync(request);
+
+                UpdateWeightFromHeaders(response.Headers);
 
                 if (response.IsSuccessStatusCode)
                 {
                     return await response.Content.ReadAsStringAsync();
                 }
 
-                // Capture detailed error information
+                if ((int)response.StatusCode == 429)
+                {
+                    var retryAfter = response.Headers.RetryAfter?.Delta?.TotalSeconds ?? 60;
+                    var msg = $"!!! RATE LIMIT EXCEEDED (429). Server asks to wait {retryAfter}s. Pausing global operations.";
+                    Console.WriteLine(msg);
+                    await GlobalClients.TelegramBotService.SendMessageToAdminsAsync(msg);
+
+                    lock (WeightLock) { _currentUsedWeight = MaxWeightPerMinute + 100; }
+
+                    await Task.Delay(TimeSpan.FromSeconds(retryAfter));
+
+                    lock (WeightLock) { _currentUsedWeight = 0; }
+                }
+
                 var errorContent = await response.Content.ReadAsStringAsync();
                 throw new HttpRequestException(
-                    $"Failed to retrieve candle data for symbol: {symbol}, interval: {interval}, limit: {limit}. " +
-                    $"HTTP Status: {response.StatusCode}, Reason: {response.ReasonPhrase}, Content: {errorContent}");
-            }
-            catch (HttpRequestException ex)
-            {
-                throw;
+                    $"Failed to retrieve candle data for symbol: {symbol}. HTTP {response.StatusCode}. Content: {errorContent}");
             }
             catch (Exception ex)
             {
-                throw new Exception(
-                    $"Error retrieving candle data for symbol: {symbol}, interval: {interval}, limit: {limit}. " +
-                    $"Error: {ex.Message}", ex);
+                throw new Exception($"Error in GetCandleDataAsync for {symbol}: {ex.Message}", ex);
             }
         });
     }
@@ -75,95 +85,93 @@ public static class MarketDataService
             attempt++;
             try
             {
+                await WaitForWeightCapacityAsync();
+
                 var nowUtc = DateTimeOffset.UtcNow;
                 var roundedTime = BinanceHttpHelper.RoundTimeToInterval(nowUtc, interval);
                 var (intervalCount, intervalType) = BinanceHttpHelper.ParseInterval(interval);
+                var lastCandleStartTime = BinanceHttpHelper.CalculateStartTime(roundedTime, intervalCount, intervalType, 1);
 
-                var lastCandleStartTime =
-                    BinanceHttpHelper.CalculateStartTime(roundedTime, intervalCount, intervalType, 1);
                 var startTime = lastCandleStartTime.ToUnixTimeMilliseconds();
                 var endTime = roundedTime.ToUnixTimeMilliseconds();
-
-                var queryString =
-                    $"symbol={symbol}&interval={interval}&limit=1&startTime={startTime}&endTime={endTime}";
+                var queryString = $"symbol={symbol}&interval={interval}&limit=1&startTime={startTime}&endTime={endTime}";
                 var requestUrl = $"{endpoint}?{queryString}";
 
+                using var request = new HttpRequestMessage(HttpMethod.Get, requestUrl);
+
                 using var response = await DataUpdatingLimiter.ExecuteAsync(async () =>
-                    await GlobalClients.HttpClientShortTimeout.GetAsync(requestUrl));
+                    await GlobalClients.HttpClientShortTimeout.SendAsync(request));
+
+                UpdateWeightFromHeaders(response.Headers);
 
                 if (response.IsSuccessStatusCode)
                 {
                     return await response.Content.ReadAsStringAsync();
                 }
 
-                var errorContent = await response.Content.ReadAsStringAsync();
-                var errorMessage = new StringBuilder();
-                errorMessage
-                    .AppendLine($"Attempt {attempt}: GetLastCompletedCandleDataAsync: Ошибка при запросе данных.")
-                    .AppendLine($"Символ: {symbol}")
-                    .AppendLine($"Интервал: {interval}")
-                    .AppendLine($"URL запроса: {requestUrl}")
-                    .AppendLine($"Статус код: {(int)response.StatusCode} ({response.StatusCode})")
-                    .AppendLine($"Причина: {response.ReasonPhrase}")
-                    .AppendLine($"Содержимое ошибки: {errorContent}");
+                if ((int)response.StatusCode == 418 || (int)response.StatusCode == 429)
+                {
+                    var retryStr = response.Headers.RetryAfter?.Delta?.TotalSeconds.ToString() ?? "unknown";
+                    throw new Exception($"IP BANNED or Rate Limit. Retry after: {retryStr}");
+                }
 
-                errorMessages.Add(errorMessage.ToString());
-            }
-            catch (TaskCanceledException ex) when (ex.CancellationToken == CancellationToken.None)
-            {
-                var timeoutMessage = new StringBuilder();
-                timeoutMessage
-                    .AppendLine(
-                        $"Attempt {attempt}: GetLastCompletedCandleDataAsync: Ошибка - истекло время ожидания запроса.")
-                    .AppendLine($"Символ: {symbol}")
-                    .AppendLine($"Интервал: {interval}");
-
-                errorMessages.Add(timeoutMessage.ToString());
+                errorMessages.Add($"Status: {response.StatusCode}, Reason: {response.ReasonPhrase}");
             }
             catch (Exception ex)
             {
-                var detailedError = new StringBuilder();
-                detailedError
-                    .AppendLine($"Attempt {attempt}: GetLastCompletedCandleDataAsync: Произошла необработанная ошибка.")
-                    .AppendLine($"Символ: {symbol}")
-                    .AppendLine($"Интервал: {interval}")
-                    .AppendLine($"Сообщение: {ex.Message}")
-                    .AppendLine($"Тип исключения: {ex.GetType().FullName}");
-
-                if (ex.InnerException != null)
-                {
-                    detailedError.AppendLine($"Внутреннее исключение: {ex.InnerException.Message}")
-                        .AppendLine($"Тип внутреннего исключения: {ex.InnerException.GetType().FullName}");
-                }
-
-                detailedError.AppendLine("Стек вызовов:")
-                    .AppendLine(ex.StackTrace ?? "Нет информации о стеке вызовов.");
-
-                errorMessages.Add(detailedError.ToString());
+                errorMessages.Add($"Attempt {attempt} error: {ex.Message}");
             }
 
-            if (attempt < maxRetries)
-            {
-                await Task.Delay(1000);
-            }
+            if (attempt < maxRetries) await Task.Delay(1000);
         }
 
-        foreach (var error in errorMessages)
+        throw new Exception($"Failed GetLastCompletedCandleDataAsync for {symbol}: {string.Join("; ", errorMessages)}");
+    }
+
+    private static void UpdateWeightFromHeaders(System.Net.Http.Headers.HttpResponseHeaders headers)
+    {
+        if (headers.TryGetValues("x-mbx-used-weight-1m", out var values))
         {
-            await GlobalClients.TelegramBotService.SendMessageToAdminsAsync(error);
+            var weightStr = values.FirstOrDefault();
+            if (int.TryParse(weightStr, out int weight))
+            {
+                lock (WeightLock)
+                {
+                    _currentUsedWeight = weight;
+                }
+            }
+        }
+    }
+
+    private static async Task WaitForWeightCapacityAsync()
+    {
+        int weight;
+        lock (WeightLock)
+        {
+            weight = _currentUsedWeight;
         }
 
-        var allErrors = string.Join(
-            Environment.NewLine + new string('-', 50) + Environment.NewLine, errorMessages);
-        throw new Exception(
-            $"Не удалось получить данные для {symbol} с интервалом {interval} после {maxRetries} попыток. Ошибки:{Environment.NewLine}{allErrors}");
+        if (weight >= SafeWeightThreshold)
+        {
+
+            Console.WriteLine($"[RATE LIMIT GUARD] Current Weight: {weight}/{MaxWeightPerMinute}. Pausing requests for 5s...");
+            await Task.Delay(5000);
+
+            lock (WeightLock)
+            {
+                if (_currentUsedWeight >= SafeWeightThreshold)
+                    _currentUsedWeight = SafeWeightThreshold - 100;
+            }
+        }
     }
 
 
     public static async Task LoadQuantitiesPrecision(List<Cryptocurrency> cryptocurrencies)
     {
-        var httpClient = new HttpClient();
-        httpClient.BaseAddress = new Uri("https://fapi.binance.com");
+        var httpClient = new HttpClient
+        {
+            BaseAddress = new Uri("https://fapi.binance.com")
+        };
 
         const string url = "https://fapi.binance.com/fapi/v1/exchangeInfo";
         var response = await httpClient.GetAsync(url);

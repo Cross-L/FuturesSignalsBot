@@ -14,22 +14,24 @@ public class AnalysisOrchestrator(
 
     private const int CalculationBatchSize = 30;
 
+    private const int RequestBatchSize = 15;
+
     public async Task StartAsync()
     {
         try
         {
             Console.WriteLine("Получение данных...");
-            await RunWithPriorityAsync(cryptocurrencyManagementServices, s => s.ReceiveTradingDataAsync());
+            await ProcessWithPriorityAndBatchingAsync(cryptocurrencyManagementServices, s => s.ReceiveTradingDataAsync(), "Загрузка данных");
 
             var activeServices = GetActiveServices();
             Console.WriteLine($"Данные получены: {DateTimeOffset.UtcNow:dd.MM.yyyy HH:mm:ss zzz}");
-            
+
             await CalculateInBatchesAsync(activeServices);
             Console.WriteLine($"Расчеты выполнены: {DateTimeOffset.UtcNow:dd.MM.yyyy HH:mm:ss zzz}");
 
             PrepareTradeNotifications(activeServices);
             await SendNotificationsAsync();
-            
+
             PrepareTradeNotifications(activeServices);
             Console.WriteLine($"Предварительные операции завершены: {DateTimeOffset.UtcNow:dd.MM.yyyy HH:mm:ss zzz}");
             await SendNotificationsAsync();
@@ -42,7 +44,7 @@ public class AnalysisOrchestrator(
 
                     if (activeServices.All(service => service.TimeToUpdate))
                     {
-                        await RunWithPriorityAsync(activeServices, s => s.UpdateDataAsync());
+                        await ProcessWithPriorityAndBatchingAsync( activeServices, s => s.UpdateDataAsync(), "Обновление данных");
                         activeServices = GetActiveServices();
                         Console.WriteLine($"Обновление данных завершено: {DateTimeOffset.UtcNow:dd.MM.yyyy HH:mm:ss zzz}");
 
@@ -52,7 +54,7 @@ public class AnalysisOrchestrator(
                         PrepareTradeNotifications(activeServices);
                         await SendNotificationsAsync();
                     }
-                    
+
                     await Task.Delay(3000, cancellationTokenSource.Token);
                 }
                 catch (TaskCanceledException)
@@ -71,20 +73,31 @@ public class AnalysisOrchestrator(
             Console.WriteLine($"Ошибка при инициализации: {ex.Message}\n{ex.StackTrace}");
         }
     }
-    
-    private static async Task RunWithPriorityAsync(
+
+    private static async Task ProcessWithPriorityAndBatchingAsync(
         IReadOnlyCollection<CryptocurrencyManagementService> services,
-        Func<CryptocurrencyManagementService, Task> action)
+        Func<CryptocurrencyManagementService, Task> action,
+        string operationName)
     {
-        var btc = services.FirstOrDefault(s => 
+        var btc = services.FirstOrDefault(s =>
             s.Cryptocurrency.Name.Equals("BTCUSDT", StringComparison.OrdinalIgnoreCase));
 
         var others = services.Where(s => s != btc).ToList();
+        int totalCount = services.Count;
+        int processedCount = 0;
 
         if (btc is not null)
+        {
             await action(btc);
+            processedCount++;
+        }
 
-        await Task.WhenAll(others.Select(action));
+        foreach (var batch in others.Chunk(RequestBatchSize))
+        {
+            await Task.WhenAll(batch.Select(action));
+            processedCount += batch.Length;
+            Console.WriteLine($"[{operationName}] Обработано {processedCount} из {totalCount} валют...");
+        }
     }
 
     private static async Task CalculateInBatchesAsync(List<CryptocurrencyManagementService> services)
@@ -97,12 +110,11 @@ public class AnalysisOrchestrator(
     }
 
     private List<CryptocurrencyManagementService> GetActiveServices()
-        => cryptocurrencyManagementServices
+        => [.. cryptocurrencyManagementServices
             .Where(s =>
                 !s.Cryptocurrency.Deactivated &&
                 AnalysisCore.Users.All(u =>
-                    u.Value.DataService.Data.DisabledCurrencies.Contains(s.Cryptocurrency.Name) is not true))
-            .ToList();
+                    u.Value.DataService.Data.DisabledCurrencies.Contains(s.Cryptocurrency.Name) is not true))];
 
 
     private static void PrepareTradeNotifications(List<CryptocurrencyManagementService> activeServices)

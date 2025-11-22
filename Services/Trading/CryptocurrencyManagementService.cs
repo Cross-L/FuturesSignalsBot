@@ -98,10 +98,8 @@ public class CryptocurrencyManagementService
         if (!IsDataStale(dataList, threshold))
             return;
 
-        var dataResponse = await MarketDataService.GetLastCompletedCandleDataAsync(Cryptocurrency.Name, interval);
-        if (dataResponse == null)
-            throw new Exception($"Не удалось получить последнюю {interval} свечу для {Cryptocurrency.Name}");
-
+        var dataResponse = await MarketDataService.GetLastCompletedCandleDataAsync(Cryptocurrency.Name, interval) 
+            ?? throw new Exception($"Не удалось получить последнюю {interval} свечу для {Cryptocurrency.Name}");
         var lastItem = dataList.LastOrDefault();
         var newDataItem = await CryptocurrencyResponseParser.GetSingleCryptocurrencyDataItemFromResponseAsync(
             dataResponse, Cryptocurrency.Name, (lastItem?.Index ?? -1) + 1);

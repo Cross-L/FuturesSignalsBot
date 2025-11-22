@@ -47,6 +47,9 @@ public static class CorrelationTrendAnalyzer
                     ? secondBitcoinExtremeItem
                     : firstBitcoinExtremeItem;
 
+            if (firstBitcoinExtremeItem.SmoothedClose == 0 || secondBitcoinExtremeItem.SmoothedClose == 0)
+                return null;
+
             // Get Bitcoin series range based on OpenTime
             DateTimeOffset startTime, endTime;
 
@@ -77,7 +80,7 @@ public static class CorrelationTrendAnalyzer
                 .OrderBy(item => item.OpenTime)
                 .ToList();
 
-            if (!bitcoinSeriesRange.Any())
+            if (bitcoinSeriesRange.Count == 0)
             {
                 var message = $"Пустой диапазон bitcoinSeriesRange: startTime={startTime}, endTime={endTime}, " +
                               $"Размер btcAllData={btcAllData.Count}, Последний OpenTime={btcAllData.Last().OpenTime}";
@@ -94,12 +97,20 @@ public static class CorrelationTrendAnalyzer
             CryptocurrencyDataItem secondBitcoinSeriesItem =
                 bitcoinMax.OpenTime > bitcoinMin.OpenTime ? bitcoinMax : bitcoinMin;
 
+            if (firstBitcoinSeriesItem.SmoothedClose == 0 || secondBitcoinSeriesItem.SmoothedClose == 0)
+                return null;
+
             // Calculate Bitcoin series and extreme percentage changes
             var bitcoinSeriesChange = CryptoAnalysisTools.CalculatePositivePercentageChange(
                 firstBitcoinSeriesItem.SmoothedClose, secondBitcoinSeriesItem.SmoothedClose);
 
             var bitcoinExtremeChange = CryptoAnalysisTools.CalculatePositivePercentageChange(
                 firstBitcoinExtremeItem.SmoothedClose, secondBitcoinExtremeItem.SmoothedClose);
+
+            if (bitcoinSeriesChange == 0) 
+                bitcoinSeriesChange = 0.00000001m;
+            if (bitcoinExtremeChange == 0) 
+                bitcoinExtremeChange = 0.00000001m;
 
             // Get altcoin series range based on OpenTime
             var altSeriesRange = allData
@@ -109,7 +120,7 @@ public static class CorrelationTrendAnalyzer
                 .OrderBy(item => item.OpenTime)
                 .ToList();
 
-            if (!altSeriesRange.Any())
+            if (altSeriesRange.Count == 0)
             {
                 var message =
                     $"Пустой диапазон altSeriesRange: startTime={generalSeries.FirstItem.OpenTime}, endTime={generalSeries.LastItem.OpenTime}, " +
@@ -125,6 +136,9 @@ public static class CorrelationTrendAnalyzer
             var firstItem = coinMin.OpenTime < coinMax.OpenTime ? coinMin : coinMax;
             var lastItem = coinMin.OpenTime < coinMax.OpenTime ? coinMax : coinMin;
 
+            if (firstItem.SmoothedClose == 0 || lastItem.SmoothedClose == 0)        
+                return null;
+            
             var altSeriesChange = CryptoAnalysisTools.CalculatePositivePercentageChange(
                 firstItem.SmoothedClose, lastItem.SmoothedClose);
 
@@ -162,7 +176,7 @@ public static class CorrelationTrendAnalyzer
                 .OrderBy(item => item.OpenTime)
                 .ToList();
 
-            if (!extremeAltRange.Any() || !extremeBtcRange.Any())
+            if (extremeAltRange.Count == 0 || extremeBtcRange.Count == 0)
             {
                 var message =
                     $"Пустой диапазон extremeRange: altRange={extremeAltRange.Count}, btcRange={extremeBtcRange.Count}, " +
@@ -178,6 +192,9 @@ public static class CorrelationTrendAnalyzer
 
             var firstItem1 = coinMin1.OpenTime < coinMax1.OpenTime ? coinMin1 : coinMax1;
             var lastItem1 = coinMin1.OpenTime < coinMax1.OpenTime ? coinMax1 : coinMin1;
+
+            if (firstItem1.SmoothedClose == 0 || lastItem1.SmoothedClose == 0) 
+                return null;
 
             var extremeCoinPercentageChange = CryptoAnalysisTools.CalculatePositivePercentageChange(
                 firstItem1.SmoothedClose, lastItem1.SmoothedClose);
@@ -198,6 +215,11 @@ public static class CorrelationTrendAnalyzer
 
             return basicInfo;
         }
+        catch (DivideByZeroException divEx)
+        {
+            Console.WriteLine($"[CRITICAL] DivideByZero in ProcessOppositeTrend for {currencyName}: {divEx.StackTrace}");
+            return null;
+        }
         catch (Exception ex)
         {
             var message = $"Ошибка в ProcessOppositeTrend для {currencyName}: {ex.GetType().Name} - {ex.Message}\n" +
@@ -215,6 +237,8 @@ public static class CorrelationTrendAnalyzer
     {
         var coinMax = selectedCandles.MaxBy(item => item.SmoothedClose);
         var coinMin = selectedCandles.MinBy(item => item.SmoothedClose);
+        if (coinMax == null || coinMin == null)
+            return (selectedCandles.First(), selectedCandles.Last());
         return (coinMin, coinMax)!;
     }
 
@@ -378,6 +402,9 @@ public static class CorrelationTrendAnalyzer
                 })
                 .ToList();
 
+            if (targetImpulses.Count == 0)
+                continue;
+
             var total = targetImpulses.Sum(info =>
             {
                 var firstBitcoinExtremum = info.BtcMinItem.Index > info.BtcMaxItem.Index
@@ -392,11 +419,10 @@ public static class CorrelationTrendAnalyzer
         }
 
 
-        TopDelays = TopDelays
+        TopDelays = [.. TopDelays
             .OrderByDescending(info => info.targetImpulses)
             .Take(20)
-            .OrderByDescending(info => info.delay)
-            .ToList();
+            .OrderByDescending(info => info.delay)];
 
         var combinedTop = new List<BasicResistanceInfo>();
 
@@ -415,24 +441,20 @@ public static class CorrelationTrendAnalyzer
             }
         }
 
-        MaxExtremeTop = combinedTop
+        MaxExtremeTop = [.. combinedTop
             .OrderByDescending(info => info.ExtremeMultiplier)
-            .Take(5)
-            .ToList();
+            .Take(5)];
 
-        MinExtremeTop = combinedTop
+        MinExtremeTop = [.. combinedTop
             .OrderBy(info => info.ExtremeMultiplier)
-            .Take(5)
-            .ToList();
+            .Take(5)];
 
-        MaxSeriesTop = combinedTop
+        MaxSeriesTop = [.. combinedTop
             .OrderByDescending(info => info.SeriesMultiplier)
-            .Take(5)
-            .ToList();
+            .Take(5)];
 
-        AntiExtremeTop = AntiExtremeTop
+        AntiExtremeTop = [.. AntiExtremeTop
             .OrderByDescending(info => info.ExtremeMultiplier)
-            .Take(10)
-            .ToList();
+            .Take(10)];
     }
 }
