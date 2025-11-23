@@ -23,6 +23,27 @@ public static class CorrelationTrendAnalyzer
     {
         try
         {
+            if (btcAllData.Count == 0 || allData.Count == 0) 
+                return null;
+
+            var lastBtcTime = btcAllData.Last().OpenTime;
+            var lastAltTime = allData.Last().OpenTime;
+
+            if (lastAltTime > lastBtcTime)
+            {
+                allData = [.. allData.Where(x => x.OpenTime <= lastBtcTime)];
+
+                if (allData.Count == 0) 
+                    return null;
+            }
+            else if (lastBtcTime > lastAltTime)
+            {
+                return null;
+            }
+
+            if (!btcAllData.Last().OpenTime.Equals(allData.Last().OpenTime))
+                return null;
+            
             var firstBitcoinExtremeItem = generalSeries.FirstExtremeItem;
             var secondBitcoinExtremeItem = generalSeries.SecondExtremeItem;
 
