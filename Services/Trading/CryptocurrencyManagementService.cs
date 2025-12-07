@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using FuturesSignalsBot.Core;
+using FuturesSignalsBot.Enums;
 using FuturesSignalsBot.Indicators;
 using FuturesSignalsBot.Indicators.Smoothing;
 using FuturesSignalsBot.Models;
@@ -53,7 +54,7 @@ public class CryptocurrencyManagementService
             {
                 await GlobalClients.TelegramBotService.SendMessageToAdminsAsync(
                     $"Валюта {Cryptocurrency.Name} отсутствует на Binance! Торговля на ней успешно остановлена");
-                Cryptocurrency.Deactivated = true;
+                Cryptocurrency.DeactivationReason = CurrencyDeactivationReason.Delisted;
                 return;
             }
             
@@ -124,7 +125,7 @@ public class CryptocurrencyManagementService
                 
                 if (newDataItem.Volume is 0)
                 {
-                    Cryptocurrency.Deactivated = true;
+                    Cryptocurrency.DeactivationReason = CurrencyDeactivationReason.Delisted;
                     await GlobalClients.TelegramBotService.SendMessageToAdminsAsync(
                         $"Валюта {Cryptocurrency.Name} отсутствует на Binance! Торговля на ней успешно остановлена");
                 }
@@ -196,7 +197,7 @@ public class CryptocurrencyManagementService
     
     private async Task HandleException(Exception ex)
     {
-        Cryptocurrency.Deactivated = true;
+        Cryptocurrency.DeactivationReason = CurrencyDeactivationReason.Error;
         LastException = ex;
         Console.WriteLine($"{ex.Message}\n{ex.StackTrace}\n");
         await GlobalClients.TelegramBotService.SendMessageToAdminsAsync(

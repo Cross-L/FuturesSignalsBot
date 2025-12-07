@@ -30,6 +30,21 @@ public static class LiquidationNotifier
         { LiquidationLevelTopType.BestShorts, (() => PreliminaryImpulseAnalyzer.BestShorts, "BestImpulses") }
     };
 
+    private static string GetRankIcon(int number) => number switch
+    {
+        1 => "1️⃣",
+        2 => "2️⃣",
+        3 => "3️⃣",
+        4 => "4️⃣",
+        5 => "5️⃣",
+        6 => "6️⃣",
+        7 => "7️⃣",
+        8 => "8️⃣",
+        9 => "9️⃣",
+        10 => "🔟",
+        _ => $"{number}."
+    };
+
     public static async Task SendTopLiquidationData(LiquidationLevelTopType topListType, long chatId = 0)
     {
         if (!TypeConfig.TryGetValue(topListType, out var config))
@@ -68,8 +83,9 @@ public static class LiquidationNotifier
             sb.AppendLine();
         }
 
-        var altCoins = impulses.Where(impulse => impulse.Currency != "BTCUSDT").ToList();
-        if (altCoins.Count == 0) return sb.ToString();
+        var altCoins = impulses.Where(impulse => impulse.Currency != "BTCUSDT").Take(10).ToList();
+        if (altCoins.Count == 0) 
+            return sb.ToString();
 
         if (topListType == LiquidationLevelTopType.TmoX3Liquidation)
         {
@@ -101,16 +117,30 @@ public static class LiquidationNotifier
         return sb.ToString();
     }
 
-    private static void AppendPreliminaryImpulse(StringBuilder sb, PreliminaryImpulse impulse, int number, 
-        LiquidationLevelTopType topListType, string formatType)
+    private static void AppendPreliminaryImpulse(StringBuilder sb, PreliminaryImpulse impulse, int number,
+            LiquidationLevelTopType topListType, string formatType)
     {
         var precision = Math.Min(impulse.Precision, 7);
         var isAltCoin = number != 0;
         var icon = impulse.IsLong ? "🩸" : "💧";
         var price = impulse.Price.ToString($"F{precision}");
-        var baseFormat = isAltCoin 
-            ? $"{number}. <b>{impulse.Currency}</b>.P" 
-            : $"<b>{impulse.Currency}</b>.P";
+
+        var crypto = GlobalClients.CryptocurrenciesStorage.AllCryptocurrencies
+            .FirstOrDefault(c => c.Name == impulse.Currency);
+
+        var rankString = crypto?.Top24hRank != null ? $" &lt;<b><u>{crypto.Top24hRank}</u></b>&gt; " : "";
+
+        string baseFormat;
+
+        if (isAltCoin)
+        {
+            var rankIcon = GetRankIcon(number);
+            baseFormat = $"{rankIcon} <b>{impulse.Currency}</b>.P{rankString}";
+        }
+        else
+        {
+            baseFormat = $"<b>{impulse.Currency}</b>.P{rankString}";
+        }
 
         switch (formatType)
         {
@@ -153,15 +183,16 @@ public static class LiquidationNotifier
                 sb.AppendLine(bestImpulsesLine);
                 break;
 
-            default: // Inefficiency, Poc, ChangeOv, TmoX3
+            default:
                 var impulseType = impulse.IsLong ? "📈 Lo_Imp" : "📉 Sh_Imp";
                 var isChangeOvType = formatType == "ChangeOv";
                 var sign = impulse.PocPercentageChange < 0 ? "" : "+";
                 var pocText = $"[poc{sign}{impulse.PocPercentageChange:F2}%]";
                 var changeOvText = isChangeOvType ? $", changeOv [<b>{impulse.ChangeOv:F2}%</b>]" : "";
+
                 var formattedLine = isAltCoin && (topListType is LiquidationLevelTopType.LongInefficiency or LiquidationLevelTopType.ShortInefficiency)
-                    ? $"{number}. <b>{impulse.Currency}</b>.P{pocText}"
-                    : $"{number}. <b>{impulse.Currency}</b>.P{pocText}{changeOvText} ({impulseType})";
+                    ? $"{baseFormat}{pocText}"
+                    : $"{baseFormat}{pocText}{changeOvText} ({impulseType})";
 
                 var isSpecialType = formatType is "Inefficiency" or "Poc" or "TmoX3";
                 var tmoPart = isSpecialType

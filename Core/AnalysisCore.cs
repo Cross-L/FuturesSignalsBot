@@ -1,9 +1,12 @@
-using System.Collections.Concurrent;
+using FuturesSignalsBot.Enums;
+using FuturesSignalsBot.Models;
 using FuturesSignalsBot.Models.Config;
 using FuturesSignalsBot.Services.Analysis;
 using FuturesSignalsBot.Services.Binance;
 using FuturesSignalsBot.Services.Bot;
 using FuturesSignalsBot.Services.Trading;
+using System.Collections.Concurrent;
+using System.Linq;
 
 namespace FuturesSignalsBot.Core;
 
@@ -30,10 +33,10 @@ public static class AnalysisCore
         {
             await UpdateCurrenciesAsync();
 
-            _cryptocurrencyManagementServices = GlobalClients.CryptocurrenciesStorage.AllCryptocurrencies.Select
-                (cryptocurrency => new CryptocurrencyManagementService(cryptocurrency)).ToList();
+            _cryptocurrencyManagementServices = [.. GlobalClients.CryptocurrenciesStorage.AllCryptocurrencies.Select
+                (cryptocurrency => new CryptocurrencyManagementService(cryptocurrency))];
             await MarketDataService.LoadQuantitiesPrecision(GlobalClients.CryptocurrenciesStorage.AllCryptocurrencies);
-            
+
             var currentTime = DateTimeOffset.UtcNow;
             var cleanTime =
                 new DateTimeOffset(currentTime.Year, currentTime.Month, currentTime.Day, 0, 0, 0, TimeSpan.Zero)
@@ -78,28 +81,32 @@ public static class AnalysisCore
 
     private static async Task UpdateCurrenciesAsync()
     {
-        var removedCurrencies = GlobalClients.CryptocurrenciesStorage.AllCryptocurrencies
-            .Where(currency => currency.Deactivated)
-            .Select(currency => currency.Name)
-            .ToList();
-        GlobalClients.CryptocurrenciesStorage.AllCryptocurrencies.RemoveAll(currency => currency.Deactivated);
+        var storage = GlobalClients.CryptocurrenciesStorage.AllCryptocurrencies;
 
-        if (removedCurrencies.Count != 0)
-        {
-            await GlobalClients.TelegramBotService.SendMessageToAdminsAsync(
-                $"Валюты {string.Join(", ", removedCurrencies)} убраны из списка");
-        }
+        static bool ShouldRemove(Cryptocurrency c) =>
+            c.DeactivationReason is CurrencyDeactivationReason.Error or CurrencyDeactivationReason.Delisted;
+
+        var currenciesToRemove = storage.Where(ShouldRemove).ToList();
+        if (currenciesToRemove.Count is 0)
+            return;
+
+        storage.RemoveAll(new Predicate<Cryptocurrency>(ShouldRemove));
+
+        var removedNames = string.Join(", ", currenciesToRemove.Select(c => c.Name));
+        await GlobalClients.TelegramBotService.SendMessageToAdminsAsync(
+            $"Валюты {string.Join(", ", removedNames)} убраны из списка");
+
     }
-    
+
     private static async Task AssignUsersAsync(Dictionary<string, UserConfig> userConfigs)
     {
         foreach (var (id, userConfig) in userConfigs)
         {
             var parsedId = long.Parse(id);
             var username = await GlobalClients.TelegramBotService.GetUsernameByIdAsync(parsedId);
-            
+
             var user = new User(parsedId, username, userConfig.IsAdmin);
-            
+
             if (!Users.TryAdd(parsedId, user))
             {
                 Console.WriteLine($"Не удалось добавить пользователя {user.Name} ID: {parsedId}");
@@ -108,7 +115,7 @@ public static class AnalysisCore
             await user.DataService.LoadUserDataAsync();
         }
     }
-    
+
     public static async Task SaveUsersDataAsync()
     {
         foreach (var user in Users)

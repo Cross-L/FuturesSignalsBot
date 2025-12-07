@@ -190,4 +190,95 @@ public static class MarketDataService
             }
         }
     }
+
+    /// <summary>
+    /// Retrieves the top trading pairs by quote volume over the last 24 hours (rolling window).
+    /// Performs only a single API request instead of iterating through all pairs individually.
+    /// </summary>
+    /// <param name="symbols">List of tickers of interest (used as a filter)</param>
+    /// <param name="topCount">Number of top pairs to return</param>
+    /// <returns>List of symbols sorted by quote volume in descending order</returns>
+    public static async Task<List<Cryptocurrency>> GetTopSymbolsByRolling24hTurnoverAsync(List<Cryptocurrency> symbols, int topCount = 250)
+    {
+        Console.WriteLine($"[MarketData] Getting rolling 24h ticker data...");
+
+        foreach (var s in symbols) 
+            s.Top24hRank = null;
+
+        var symbolsSet = new HashSet<string>(symbols.Select(s => s.Name));
+        const string endpoint = "/fapi/v1/ticker/24hr";
+
+        await WaitForWeightCapacityAsync();
+
+        try
+        {
+            using var request = new HttpRequestMessage(HttpMethod.Get, endpoint);
+
+            var jsonResponse = await DataReceivingLimiter.ExecuteAsync(async () =>
+            {
+                using var response = await GlobalClients.HttpClientBigTimeout.SendAsync(request);
+                UpdateWeightFromHeaders(response.Headers);
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    if ((int)response.StatusCode == 429)
+                    {
+                        var retryAfter = response.Headers.RetryAfter?.Delta?.TotalSeconds ?? 60;
+                        Console.WriteLine($"[Warning] 429 rate limit on /ticker/24hr. Retry after {retryAfter}s");
+                        throw new HttpRequestException("Rate Limit 429", null, System.Net.HttpStatusCode.TooManyRequests);
+                    }
+
+                    var error = await response.Content.ReadAsStringAsync();
+                    Console.WriteLine($"[Error] Failed to get ticker data: {response.StatusCode} - {error}");
+                    return null;
+                }
+
+                return await response.Content.ReadAsStringAsync();
+            });
+
+            if (string.IsNullOrEmpty(jsonResponse))
+                return [];
+
+            var jArray = JArray.Parse(jsonResponse);
+            var resultList = new List<(string Symbol, decimal Turnover)>();
+
+            foreach (var item in jArray)
+            {
+                var symbol = item["symbol"]?.ToString();
+
+                if (symbol != null && symbolsSet.Contains(symbol))
+                {
+                    var quoteVolumeStr = item["quoteVolume"]?.ToString();
+
+                    if (decimal.TryParse(quoteVolumeStr, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out var turnover))
+                    {
+                        if (turnover > 0)
+                        {
+                            resultList.Add((symbol, turnover));
+                        }
+                    }
+                }
+            }
+
+            Console.WriteLine($"[MarketData] Analysis finished. Processed {resultList.Count} symbols.");
+
+            return [.. resultList
+                .OrderByDescending(x => x.Turnover)
+                .Take(topCount)
+                .Select((x, i) => new { x.Symbol, Rank = i + 1 })
+                .Join(symbols,
+                      temp => temp.Symbol,
+                      crypto => crypto.Name,
+                      (temp, crypto) =>
+                      {
+                          crypto.Top24hRank = temp.Rank;
+                          return crypto;
+                      })];
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[Error] Critical error in GetTopSymbolsByRolling24hTurnoverAsync: {ex.Message}");
+            return [];
+        }
+    }
 }

@@ -2,6 +2,7 @@ using System.Diagnostics;
 using FuturesSignalsBot.Core;
 using FuturesSignalsBot.Enums;
 using FuturesSignalsBot.Services.Analysis;
+using FuturesSignalsBot.Services.Binance;
 using FuturesSignalsBot.Services.Notifiers;
 
 namespace FuturesSignalsBot.Services.Trading;
@@ -20,10 +21,47 @@ public class AnalysisOrchestrator(
     {
         try
         {
-            Console.WriteLine("Получение данных...");
-            await ProcessWithPriorityAndBatchingAsync(cryptocurrencyManagementServices, s => s.ReceiveTradingDataAsync(), "Загрузка данных");
+            var topTurnoverCurrencies = await MarketDataService.GetTopSymbolsByRolling24hTurnoverAsync(
+                            [.. cryptocurrencyManagementServices.Select(s => s.Cryptocurrency)]
+                        );
 
+            var topSymbolsSet = topTurnoverCurrencies.Select(c => c.Name).ToHashSet();
+
+            Console.WriteLine("Обновление статусов активности сервисов...");
+            int deactivatedCount = 0;
+
+            foreach (var service in cryptocurrencyManagementServices)
+            {
+                if (service.Cryptocurrency.Name == "BTCUSDT")
+                {
+                    service.Cryptocurrency.DeactivationReason = CurrencyDeactivationReason.None;
+                    continue;
+                }
+
+                bool isTop = topSymbolsSet.Contains(service.Cryptocurrency.Name);
+
+                if (isTop)
+                {
+                    if (service.Cryptocurrency.DeactivationReason == CurrencyDeactivationReason.NotInTop)
+                    {
+                        service.Cryptocurrency.DeactivationReason = CurrencyDeactivationReason.None;
+                    }
+                }
+                else
+                {
+                    if (service.Cryptocurrency.DeactivationReason == CurrencyDeactivationReason.None)
+                    {
+                        service.Cryptocurrency.DeactivationReason = CurrencyDeactivationReason.NotInTop;
+                        deactivatedCount++;
+                    }
+                }
+            }
+
+            Console.WriteLine($"[Info] Статусы обновлены. Деактивировано пар вне топа: {deactivatedCount}.");
             var activeServices = GetActiveServices();
+            Console.WriteLine($"Получение данных для {activeServices.Count} активных пар...");
+
+            await ProcessWithPriorityAndBatchingAsync(activeServices, s => s.ReceiveTradingDataAsync(), "Загрузка данных");
             Console.WriteLine($"Данные получены: {DateTimeOffset.UtcNow:dd.MM.yyyy HH:mm:ss zzz}");
 
             await CalculateInBatchesAsync(activeServices);
@@ -44,7 +82,7 @@ public class AnalysisOrchestrator(
 
                     if (activeServices.All(service => service.TimeToUpdate))
                     {
-                        await ProcessWithPriorityAndBatchingAsync( activeServices, s => s.UpdateDataAsync(), "Обновление данных");
+                        await ProcessWithPriorityAndBatchingAsync(activeServices, s => s.UpdateDataAsync(), "Обновление данных");
                         activeServices = GetActiveServices();
                         Console.WriteLine($"Обновление данных завершено: {DateTimeOffset.UtcNow:dd.MM.yyyy HH:mm:ss zzz}");
 
@@ -75,14 +113,17 @@ public class AnalysisOrchestrator(
     }
 
     private static async Task ProcessWithPriorityAndBatchingAsync(
-        IReadOnlyCollection<CryptocurrencyManagementService> services,
+        List<CryptocurrencyManagementService> services,
         Func<CryptocurrencyManagementService, Task> action,
         string operationName)
     {
         var btc = services.FirstOrDefault(s =>
-            s.Cryptocurrency.Name.Equals("BTCUSDT", StringComparison.OrdinalIgnoreCase));
+                s.Cryptocurrency.Name.Equals("BTCUSDT", StringComparison.OrdinalIgnoreCase));
 
-        var others = services.Where(s => s != btc).ToList();
+        var otherBatches = services
+                .Where(s => s != btc)
+                .Chunk(RequestBatchSize);
+
         int totalCount = services.Count;
         int processedCount = 0;
 
@@ -92,7 +133,7 @@ public class AnalysisOrchestrator(
             processedCount++;
         }
 
-        foreach (var batch in others.Chunk(RequestBatchSize))
+        foreach (var batch in otherBatches)
         {
             await Task.WhenAll(batch.Select(action));
             processedCount += batch.Length;
@@ -170,7 +211,10 @@ public class AnalysisOrchestrator(
     {
         var stableServicesCount = cryptocurrencyManagementServices.Count(service => !service.Cryptocurrency.Deactivated);
 
-        foreach (var service in cryptocurrencyManagementServices.Where(service => service.Cryptocurrency.Deactivated))
+        var errorServices = cryptocurrencyManagementServices
+            .Where(service => service.Cryptocurrency.DeactivationReason == CurrencyDeactivationReason.Error);
+
+        foreach (var service in errorServices)
         {
             if (service.LastException != null)
             {
@@ -179,6 +223,7 @@ public class AnalysisOrchestrator(
                     $"Ошибка в сервисе {service.Cryptocurrency.Name}: {exception.GetType().Name} - {exception.Message}";
 
                 var stackTrace = new StackTrace(exception, true);
+
                 var relevantFrame = stackTrace.GetFrames().FirstOrDefault(frame =>
                     !frame.GetMethod()!.Module.Name.StartsWith("System.") &&
                     !frame.GetMethod()!.Module.Name.StartsWith("Microsoft.") &&

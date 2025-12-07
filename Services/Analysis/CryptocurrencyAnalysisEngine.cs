@@ -60,7 +60,7 @@ public static class CryptocurrencyAnalysisEngine
         if (selectedCandles.Count > 0)
         {
             var filteredCandles = isLong
-                ? selectedCandles.Where(c => c.Score.ZScore < c.Score.InvertedZScore).ToList()
+                ? [.. selectedCandles.Where(c => c.Score.ZScore < c.Score.InvertedZScore)]
                 : selectedCandles.Where(c => c.Score.ZScore > c.Score.InvertedZScore).ToList();
 
             if (filteredCandles.Count > 0)
