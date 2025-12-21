@@ -76,7 +76,7 @@ public static class TmoIndexAnalyzer
 
 
     public static void AnalyzeTmoInefficiency(List<CryptocurrencyManagementService> activeServices, 
-        List<PreliminaryImpulse?> preliminaryImpulses30M, List<PreliminaryImpulse?> preliminaryImpulses5M,
+        List<PreliminaryImpulse?> preliminaryImpulses30M, List<PreliminaryImpulse> preliminaryImpulses5M,
         List<PreliminaryImpulse?> specifiedPreliminaryImpulses)
     {
         var allCurrencies = activeServices.Select(service => service.Cryptocurrency).ToList();

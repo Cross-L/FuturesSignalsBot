@@ -27,7 +27,11 @@ public static class LiquidationNotifier
         { LiquidationLevelTopType.LongOpenMax, (() => PreliminaryImpulseAnalyzer.TopLongOpenMax, "OpenMinMax") },
         { LiquidationLevelTopType.ShortOpenMin, (() => PreliminaryImpulseAnalyzer.TopShortOpenMin, "OpenMinMax") },
         { LiquidationLevelTopType.BestLongs, (() => PreliminaryImpulseAnalyzer.BestLongs, "BestImpulses") },
-        { LiquidationLevelTopType.BestShorts, (() => PreliminaryImpulseAnalyzer.BestShorts, "BestImpulses") }
+        { LiquidationLevelTopType.BestShorts, (() => PreliminaryImpulseAnalyzer.BestShorts, "BestImpulses") },
+        { LiquidationLevelTopType.LongFundingRate, (() => MarketFundingAnalyzer.TopByLongFunding, "FundingList") },
+        { LiquidationLevelTopType.ShortFundingRate, (() => MarketFundingAnalyzer.TopByShortFunding, "FundingList") },
+        { LiquidationLevelTopType.LongReverseNarrative, (() => MarketFundingAnalyzer.TopByLongReverse, "ReverseNarrative") },
+        { LiquidationLevelTopType.ShortReverseNarrative, (() => MarketFundingAnalyzer.TopByShortReverse, "ReverseNarrative") },
     };
 
     private static string GetRankIcon(int number) => number switch
@@ -118,7 +122,7 @@ public static class LiquidationNotifier
     }
 
     private static void AppendPreliminaryImpulse(StringBuilder sb, PreliminaryImpulse impulse, int number,
-            LiquidationLevelTopType topListType, string formatType)
+                LiquidationLevelTopType topListType, string formatType)
     {
         var precision = Math.Min(impulse.Precision, 7);
         var isAltCoin = number != 0;
@@ -183,10 +187,27 @@ public static class LiquidationNotifier
                 sb.AppendLine(bestImpulsesLine);
                 break;
 
+            case "FundingList":
+                var frate = crypto?.FundingRate ?? 0;
+                var sign = frate > 0 ? "+" : "";
+                var fRateInfo = $"F.rate:{sign}{frate:F10}%";
+                minMaxInfo = impulse.IsLong ? $"🍎Op.max[{impulse.MinMaxPercentage:F1}%]" : $"🍏Op.min[{impulse.MinMaxPercentage:F1}%]";
+                var changeOvInfo = $"changeOv[{impulse.ChangeOv:F2}%]";
+                sb.AppendLine($"{baseFormat} {fRateInfo}, {minMaxInfo}, {changeOvInfo}");
+                break;
+
+            case "ReverseNarrative":
+                var fr = crypto?.FundingRate ?? 0;
+                var revTime = crypto?.FundingReversalTime?.AddHours(2).ToString("HH:mm/dd/MM/yyyy") ?? "Н/Д";
+                var fSign = fr > 0 ? "+" : "";
+                var mMax = impulse.IsLong ? $"🍎Op.max[{impulse.MinMaxPercentage:F1}%]" : $"🍏Op.min[{impulse.MinMaxPercentage:F1}%]";
+                sb.AppendLine($"{baseFormat} F.rate: {fSign}{fr:F10}%, Rev.time: {revTime}, {mMax}, changeOv[{impulse.ChangeOv:F2}%]");
+                break;
+
             default:
                 var impulseType = impulse.IsLong ? "📈 Lo_Imp" : "📉 Sh_Imp";
                 var isChangeOvType = formatType == "ChangeOv";
-                var sign = impulse.PocPercentageChange < 0 ? "" : "+";
+                sign = impulse.PocPercentageChange < 0 ? "" : "+";
                 var pocText = $"[poc{sign}{impulse.PocPercentageChange:F2}%]";
                 var changeOvText = isChangeOvType ? $", changeOv [<b>{impulse.ChangeOv:F2}%</b>]" : "";
 

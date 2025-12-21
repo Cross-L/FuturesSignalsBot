@@ -65,7 +65,8 @@ public class CryptocurrencyManagementService
                     CorrelationTrendAnalyzer.CalculateBitcoinResistance(Cryptocurrency.TradingDataContainer.FourHourData);
                 BitcoinResistanceService.ResistanceSeries.RemoveAll(series => series.FirstItem.Index == series.LastItem.Index);
             }
-            
+
+            await InitializeFundingHistoryAsync();
             _newThirtyMinuteCandleReceived = true;
             // Console.WriteLine($"Получены данные для валюты {Cryptocurrency.Name}");
         }
@@ -129,6 +130,10 @@ public class CryptocurrencyManagementService
                     await GlobalClients.TelegramBotService.SendMessageToAdminsAsync(
                         $"Валюта {Cryptocurrency.Name} отсутствует на Binance! Торговля на ней успешно остановлена");
                 }
+                else
+                {
+                    await UpdateFundingWithReversalCheck();
+                }
             }
         }
     }
@@ -153,15 +158,11 @@ public class CryptocurrencyManagementService
                 {
                     CryptocurrencyAnalysisEngine.CalculateLastItemIndicators(Cryptocurrency);
                 }
-                
-                var fiveMinuteData = Cryptocurrency.TradingDataContainer.FiveMinuteData;
-                var prices = fiveMinuteData
-                    .Skip(fiveMinuteData.Count - 72)
-                    .Take(72)
-                    .Select(data => data.Low)
-                    .ToList();
 
-                var score = ZScoreCalculator.CalculateScores(prices);
+                var fiveMinuteData = Cryptocurrency.TradingDataContainer.FiveMinuteData;
+                var allLowPrices = fiveMinuteData.Select(data => data.Low).ToList();
+                int lastIndex = fiveMinuteData.Count - 1;
+                var score = ZScoreCalculator.CalculateScores(allLowPrices, lastIndex, 72, 72);
                 fiveMinuteData.Last().Score = score;
 
                 LiquidationLevelAnalyzer.Update(_newThirtyMinuteCandleReceived);
@@ -194,7 +195,50 @@ public class CryptocurrencyManagementService
             await HandleException(ex);
         }
     }
-    
+
+    private async Task InitializeFundingHistoryAsync()
+    {
+        var currentRate = await MarketDataService.GetCurrentFundingRateAsync(Cryptocurrency.Name);
+        var history = await MarketDataService.GetLastHistoricalFundingRateAsync(Cryptocurrency.Name);
+
+        if (history.HasValue)
+        {
+            Cryptocurrency.PreviousFundingRate = history.Value.Rate;
+            Cryptocurrency.FundingRate = currentRate;
+
+            bool turnedNegative = Cryptocurrency.PreviousFundingRate > 0 && currentRate < 0;
+            bool turnedPositive = Cryptocurrency.PreviousFundingRate < 0 && currentRate > 0;
+
+            if (turnedNegative || turnedPositive)
+            {
+                Cryptocurrency.FundingReversalTime = history.Value.Time;
+            }
+        }
+        else
+        {
+            Cryptocurrency.FundingRate = currentRate;
+        }
+    }
+
+    private async Task UpdateFundingWithReversalCheck()
+    {
+        var newRate = await MarketDataService.GetCurrentFundingRateAsync(Cryptocurrency.Name);
+
+        if (Cryptocurrency.FundingRate != 0)
+        {
+            bool turnedNegative = Cryptocurrency.FundingRate > 0 && newRate < 0;
+            bool turnedPositive = Cryptocurrency.FundingRate < 0 && newRate > 0;
+
+            if (turnedNegative || turnedPositive)
+            {
+                Cryptocurrency.FundingReversalTime = DateTimeOffset.UtcNow;
+                Cryptocurrency.PreviousFundingRate = Cryptocurrency.FundingRate;
+            }
+        }
+
+        Cryptocurrency.FundingRate = newRate;
+    }
+
     private async Task HandleException(Exception ex)
     {
         Cryptocurrency.DeactivationReason = CurrencyDeactivationReason.Error;

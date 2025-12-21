@@ -44,9 +44,9 @@ public class CryptocurrenciesStorage
     new("DYDXUSDT"), new("DYMUSDT"), new("EDUUSDT"), new("EGLDUSDT"),
     new("EIGENUSDT"), new("ENAUSDT"), new("ENJUSDT"), new("ENSUSDT"),
     new("EPICUSDT"), new("EPTUSDT"), new("ERAUSDT"), new("ESPORTSUSDT"),
-    new("ETHFIUSDT"), new("ETHWUSDT"),
+    new("ETHFIUSDT"), new("ETHWUSDT"), new("ETHUSDT"),
     new("FARTCOINUSDT"), new("FETUSDT"), new("FHEUSDT"), new("FIDAUSDT"),
-    new("FIOUSDT"), new("FISUSDT"),
+    new("FIOUSDT"),
     new("FLOWUSDT"), new("FLUXUSDT"), new("FORMUSDT"), new("FORTHUSDT"),
     new("FUNUSDT"), new("FUSDT"), new("FXSUSDT"), new("GALAUSDT"),
     new("GASUSDT"), new("GHSTUSDT"), new("GLMUSDT"), new("GMTUSDT"),
@@ -87,13 +87,13 @@ public class CryptocurrenciesStorage
     new("PROMPTUSDT"), new("PROMUSDT"), new("PROVEUSDT"), new("PUFFERUSDT"),
     new("PUMPBTCUSDT"), new("PUMPUSDT"), new("PUNDIXUSDT"), new("PYTHUSDT"),
     new("QNTUSDT"), new("QTUMUSDT"), new("RAREUSDT"),
-    new("RAYSOLUSDT"), new("RDNTUSDT"), new("REDUSDT"), new("REIUSDT"),
+    new("RAYSOLUSDT"), new("RDNTUSDT"), new("REDUSDT"),
     new("RENDERUSDT"), new("RESOLVUSDT"), new("REZUSDT"), new("RIFUSDT"),
     new("RLCUSDT"), new("RONINUSDT"), new("ROSEUSDT"), new("RPLUSDT"),
     new("RSRUSDT"), new("RUNEUSDT"), new("RVNUSDT"), new("SAFEUSDT"),
     new("SAGAUSDT"), new("SAHARAUSDT"), new("SANDUSDT"), new("SANTOSUSDT"),
     new("SCRTUSDT"), new("SCRUSDT"), new("SEIUSDT"), new("SFPUSDT"),
-    new("SHELLUSDT"), new("SIGNUSDT"), new("SIRENUSDT"), new("SKATEUSDT"),
+    new("SHELLUSDT"), new("SIGNUSDT"), new("SIRENUSDT"),
     new("SKLUSDT"), new("SKYAIUSDT"), new("SLPUSDT"), new("SNXUSDT"),
     new("SOLVUSDT"), new("SONICUSDT"), new("SOONUSDT"),
     new("SOPHUSDT"), new("SPELLUSDT"), new("SPKUSDT"), new("SPXUSDT"),
@@ -111,7 +111,7 @@ public class CryptocurrenciesStorage
     new("UMAUSDT"), new("USDCUSDT"), new("USELESSUSDT"),
     new("USUALUSDT"), new("VANAUSDT"), new("VANRYUSDT"), new("VELODROMEUSDT"),
     new("VELVETUSDT"), new("VETUSDT"), new("VICUSDT"), new("VINEUSDT"),
-    new("VIRTUALUSDT"), new("VOXELUSDT"), new("VTHOUSDT"), new("VVVUSDT"),
+    new("VIRTUALUSDT"), new("VTHOUSDT"), new("VVVUSDT"),
     new("WALUSDT"), new("WAXPUSDT"), new("WCTUSDT"), new("WIFUSDT"),
     new("WLDUSDT"), new("WOOUSDT"), new("WUSDT"), new("XAIUSDT"),
     new("XMRUSDT"), new("XNYUSDT"),
@@ -121,4 +121,8 @@ public class CryptocurrenciesStorage
     new("ZKJUSDT"), new("ZKUSDT"), new("ZORAUSDT"), new("ZRCUSDT"),
     new("ZROUSDT"), new("ZRXUSDT")
     ];
+
+    public Cryptocurrency? GetByName(string name)
+           => AllCryptocurrencies.FirstOrDefault(c => c.Name.Equals(name, StringComparison.OrdinalIgnoreCase));
+    
 }

@@ -8,23 +8,24 @@ public class ReceivedSignalsCommand: BaseCommand
 {
     public override string Name => "/received_signals";
 
-    public override async Task ExecuteAsync(Message message, User currentUser,
-        CancellationToken cancellationToken)
+    public override async Task ExecuteAsync(Message message, User currentUser, CancellationToken cancellationToken)
     {
         if (!currentUser.IsAdmin)
         {
-             await GlobalClients.TelegramBotService.SendMessageToChatAsync(message.Chat.Id,
-                 "Доступ к команде ограничен",
-                cancellationToken: cancellationToken);
+            await GlobalClients.TelegramBotService.SendMessageToChatAsync(message.Chat.Id, "Доступ к команде ограничен", cancellationToken: cancellationToken);
             return;
         }
-        
+
         var messageText = GlobalClients.CryptocurrenciesStorage.AllCryptocurrencies.Count > 0
             ? "<b>📈 Long:</b>\n" +
+              "<b>/long_frate</b> - 📗F.rate_LONG🍭\n" +
+              "<b>/long_reverse</b> - ✳️Reverse_narative_LONG🐳\n" +
               "<b>/long_tmo_inefficiency</b> - Неэффективность ТМО(-8.00)\n" +
               "<b>/low_top</b> - Оценка Лоя\n" +
               "<b>/above_poc</b> - Выше POC_0\n\n" +
               "<b>📉 Short:</b>\n" +
+              "<b>/short_frate</b> - 📕F.rate_SHORT🍭\n" +
+              "<b>/short_reverse</b> - ✴️Reverse_narative_SHORT🐳\n" +
               "<b>/short_tmo_inefficiency</b> - Неэффективность ТМО(+8.00)\n" +
               "<b>/high_top</b> - Оценка Хая\n" +
               "<b>/below_poc</b> - Ниже POC_0\n\n" +
@@ -42,9 +43,11 @@ public class ReceivedSignalsCommand: BaseCommand
               "<b>/anti_correlation</b> - Антикорреляция в рамках min/max BTC\n" +
               "<b>/altcoin_delay</b> - Наибольшая задержка альткоинов\n\n" +
               "<b>📐 TMO:</b>\n" +
-              "<b>/tmo_index</b> - Индекс TMO\n\n"
+              "<b>/tmo_index</b> - Индекс TMO\n\n" +
+              "<b>🗿 Фон рынка/фандинг:</b>\n" +
+              "<b>/funding_rate</b> - Текущий фон рынка и фандинг\n\n"
             : "<b>❗ Сначала нужно добавить валюты для отслеживания сигналов</b>";
-        
+
         await GlobalClients.TelegramBotService.SendMessageToChatAsync(message.Chat.Id, messageText, cancellationToken: cancellationToken);
     }
 }

@@ -15,16 +15,11 @@ public static class CryptocurrencyAnalysisEngine
         CryptoAnalysisTools.CalculateAllTmoValues(thirtyMinuteData, cryptocurrency.Name is "BTCUSDT");
         lastItem30M.Tmo60 = CryptoAnalysisTools.CalculateLastTmoForTimeFrame(thirtyMinuteData, 60);
 
-        for (var i = fiveMinuteData.Count - 428; i < fiveMinuteData.Count; i++)
-        {
-            var prices = fiveMinuteData
-                .Skip(i - 72 + 1)
-                .Take(72)
-                .Select(data => data.Low)
-                .ToList();
+        var lowPrices = fiveMinuteData.Select(d => d.Low).ToList();
 
-            var score = ZScoreCalculator.CalculateScores(prices);
-            fiveMinuteData[i].Score = score;
+        for (var i = 0; i < fiveMinuteData.Count; i++)
+        {
+            fiveMinuteData[i].Score = ZScoreCalculator.CalculateScores(lowPrices, i, 72, 72);
         }
 
         LsmaSmoothing.Smooth(cryptocurrency.TradingDataContainer.FourHourData);

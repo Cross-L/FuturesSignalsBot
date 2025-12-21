@@ -25,6 +25,10 @@ public static class LiquidationLevelNameFactory
             LiquidationLevelTopType.ShortOpenMin => "(SHORT📉)OpenMin",
             LiquidationLevelTopType.BestLongs => "BEST_LONGS🔫",
             LiquidationLevelTopType.BestShorts => "BEST_SHORTS🔫",
+            LiquidationLevelTopType.LongFundingRate => "📗F.rate_LONG🍭",
+            LiquidationLevelTopType.ShortFundingRate => "📕F.rate_SHORT🍭",
+            LiquidationLevelTopType.LongReverseNarrative => "✳️Reverse_narative_LONG🐳",
+            LiquidationLevelTopType.ShortReverseNarrative => "✴️Reverse_narative_SHORT🐳",
             _ => throw new ArgumentOutOfRangeException(nameof(type), type, null)
         };
     }

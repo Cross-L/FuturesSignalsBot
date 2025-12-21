@@ -1,3 +1,4 @@
+using FuturesSignalsBot.Commands.Funding;
 using FuturesSignalsBot.Commands.SignalCommands;
 using FuturesSignalsBot.Commands.SignalCommands.Absorption;
 using FuturesSignalsBot.Commands.SignalCommands.Correlation;
@@ -32,7 +33,12 @@ public static class CommandFactory
         new ShortZScorePercentageCommand(),
         new LongOpenMaxCommand(),
         new ShortOpenMinCommand(),
-        new SwitchCurrencyCommand()
+        new SwitchCurrencyCommand(),
+        new FundingRateCommand(),
+        new LongFundingRateCommand(),
+        new ShortFundingRateCommand(),
+        new LongReverseCommand(),
+        new ShortReverseCommand()
     ];
     
     public static BaseCommand? GetCommand(string commandName) 

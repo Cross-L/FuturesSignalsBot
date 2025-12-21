@@ -1,6 +1,7 @@
 using FuturesSignalsBot.Core;
 using FuturesSignalsBot.Models;
 using Newtonsoft.Json.Linq;
+using System.Text.Json;
 
 namespace FuturesSignalsBot.Services.Binance;
 
@@ -281,4 +282,96 @@ public static class MarketDataService
             return [];
         }
     }
+
+    /// <summary>
+    /// Gets the current funding rate for a single trading pair.
+    /// Typically updated every 8 hours.
+    /// </summary>
+    public static async Task<decimal> GetCurrentFundingRateAsync(string symbol)
+    {
+        const string endpoint = "/fapi/v1/premiumIndex";
+        var requestUrl = $"{endpoint}?symbol={symbol}";
+
+        return await DataUpdatingLimiter.ExecuteAsync(async () =>
+        {
+            try
+            {
+                using var response = await GlobalClients.HttpClientShortTimeout.GetAsync(requestUrl);
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    Console.WriteLine($"[Warning] {symbol}: Failed to fetch funding rate (Code: {response.StatusCode})");
+                    return 0m;
+                }
+
+                var content = await response.Content.ReadAsStringAsync();
+                using var jsonDoc = JsonDocument.Parse(content);
+                var root = jsonDoc.RootElement;
+
+                if (root.TryGetProperty("lastFundingRate", out var fundingElem))
+                {
+                    string fundingString = fundingElem.GetString() ?? "0";
+
+                    if (decimal.TryParse(
+                            fundingString,
+                            System.Globalization.NumberStyles.Any,
+                            System.Globalization.CultureInfo.InvariantCulture,
+                            out var rate))
+                    {
+                        return rate;
+                    }
+                }
+
+                return 0m;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[Error] {symbol}: Funding request error: {ex.Message}");
+                return 0m;
+            }
+        });
+    }
+
+    /// <summary>
+    /// Retrieves funding history. Setting the limit to 1 returns the most recent funding rate.
+    /// </summary>
+    public static async Task<(decimal Rate, DateTimeOffset Time)?> GetLastHistoricalFundingRateAsync(string symbol)
+    {
+        const string endpoint = "/fapi/v1/fundingRate";
+        var requestUrl = $"{endpoint}?symbol={symbol}&limit=1";
+
+        return await DataUpdatingLimiter.ExecuteAsync<(decimal Rate, DateTimeOffset Time)?>(async () =>
+        {
+            try
+            {
+                using var response = await GlobalClients.HttpClientShortTimeout.GetAsync(requestUrl);
+                if (!response.IsSuccessStatusCode) return null;
+
+                var content = await response.Content.ReadAsStringAsync();
+                using var jsonDoc = JsonDocument.Parse(content);
+                var root = jsonDoc.RootElement;
+
+                if (root.ValueKind == JsonValueKind.Array && root.GetArrayLength() > 0)
+                {
+                    var lastEntry = root[root.GetArrayLength() - 1];
+
+                    var rateStr = lastEntry.GetProperty("fundingRate").GetString() ?? "0";
+                    var timeUnix = lastEntry.GetProperty("fundingTime").GetInt64();
+
+                    if (decimal.TryParse(rateStr, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out var rate))
+                    {
+                        return (rate, DateTimeOffset.FromUnixTimeMilliseconds(timeUnix));
+                    }
+                }
+
+                return null;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[Error] {symbol} History: {ex.Message}");
+                return null;
+            }
+        });
+    }
+
 }

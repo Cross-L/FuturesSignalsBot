@@ -18,6 +18,9 @@ public enum LiquidationLevelTopType
     LongOpenMax,
     ShortOpenMin,
     BestShorts,
-    BestLongs
-    
+    BestLongs,
+    LongFundingRate,
+    ShortFundingRate,
+    LongReverseNarrative,
+    ShortReverseNarrative
 }

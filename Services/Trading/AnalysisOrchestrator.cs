@@ -1,9 +1,10 @@
-using System.Diagnostics;
 using FuturesSignalsBot.Core;
 using FuturesSignalsBot.Enums;
+using FuturesSignalsBot.Models.IndicatorResults;
 using FuturesSignalsBot.Services.Analysis;
 using FuturesSignalsBot.Services.Binance;
 using FuturesSignalsBot.Services.Notifiers;
+using System.Diagnostics;
 
 namespace FuturesSignalsBot.Services.Trading;
 
@@ -176,6 +177,7 @@ public class AnalysisOrchestrator(
             .ToList();
         var preliminaryImpulses5M = liquidationLevelAnalyzers
             .Select(analyzer => analyzer.PreliminaryImpulse5M)
+            .OfType<PreliminaryImpulse>()
             .ToList();
         var specifiedPreliminaryImpulses = liquidationLevelAnalyzers
             .Select(analyzer => analyzer.SpecifiedPreliminaryImpulse5M)
@@ -184,10 +186,12 @@ public class AnalysisOrchestrator(
         MarketAbsorptionAnalyzer.AnalyzeLastAbsorption(activeServices, preliminaryImpulses5M);
         TmoIndexAnalyzer.AnalyzeTmoInefficiency(activeServices, preliminaryImpulses30M, preliminaryImpulses5M,
             specifiedPreliminaryImpulses);
-
+        
         PreliminaryImpulseAnalyzer.UpdateTopLists(preliminaryImpulses5M);
         UniqueGeneralAnalyzer.AnalyzeDataList();
         UniqueGeneralAnalyzer.AnalyzeImpulses(preliminaryImpulses30M!);
+        MarketFundingAnalyzer.AnalyzeFunding(activeServices);
+        MarketFundingAnalyzer.AnalyzeFundingLists(activeServices, preliminaryImpulses5M);
         AreNotificationsPrepared = true;
     }
 

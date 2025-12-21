@@ -13,12 +13,11 @@ public static class MarketAbsorptionAnalyzer
     public static List<string> LowerPocCurrencies { get; private set; } = [];
     public static MarketAbsorptionValues Absorption { get; private set; } = new();
     
-    public static void AnalyzeLastAbsorption(List<CryptocurrencyManagementService> activeServices, List<PreliminaryImpulse?> preliminaryImpulses5M)
+    public static void AnalyzeLastAbsorption(List<CryptocurrencyManagementService> activeServices, List<PreliminaryImpulse> preliminaryImpulses5M)
     {
         var totalCurrencies = activeServices.Count;
-        var nonNullImpulses = preliminaryImpulses5M.OfType<PreliminaryImpulse>().ToList();
-        var higherPocImpulses = nonNullImpulses.Where(impulse => impulse.PocPercentageChange > 0).ToList();
-        var lowerPocImpulses = nonNullImpulses.Where(impulse => impulse.PocPercentageChange < 0).ToList();
+        var higherPocImpulses = preliminaryImpulses5M.Where(impulse => impulse.PocPercentageChange > 0).ToList();
+        var lowerPocImpulses = preliminaryImpulses5M.Where(impulse => impulse.PocPercentageChange < 0).ToList();
 
         HigherPocCurrencies = higherPocImpulses.Select(impulse => impulse.Currency).ToList();
         LowerPocCurrencies = lowerPocImpulses.Select(impulse => impulse.Currency).ToList();

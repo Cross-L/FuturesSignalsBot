@@ -1,6 +1,7 @@
-using System.Globalization;
+using FuturesSignalsBot.Indicators;
 using FuturesSignalsBot.Models;
 using FuturesSignalsBot.Models.IndicatorResults;
+using System.Globalization;
 
 namespace FuturesSignalsBot.Services.Analysis;
 
@@ -41,6 +42,15 @@ public class LiquidationLevelAnalyzer(Cryptocurrency currency)
         VolumeProfileManager.InitializeVolumeLevels(currency.TradingDataContainer);
     }
 
+    private bool IsLongImpulse()
+    {
+        var fiveMinuteData = currency.TradingDataContainer.FiveMinuteData;
+        var allOpenPrices = fiveMinuteData.Select(data => data.Open).ToList();
+        int lastIndex = fiveMinuteData.Count - 1;
+        var (zScore, invertedZScore) = ZScoreCalculator.CalculateScores(allOpenPrices, lastIndex, 12, 12);
+        return invertedZScore > zScore;
+    }
+
     private void ProcessPreliminaryImpulses()
     {
         var lastItem30M = currency.TradingDataContainer.ThirtyMinuteData.Last();
@@ -51,7 +61,7 @@ public class LiquidationLevelAnalyzer(Cryptocurrency currency)
 
         var lastPoc = lastItem30M.VolumeProfileData[0].SmoothedPoc;
         var isLong30M = lastPoc < lastItem30M.SmoothedClose;
-        var isLong5M = lastPoc < lastItem5M.SmoothedClose;
+        var isLong5M = IsLongImpulse();
 
         var pocPercentageChange = CryptoAnalysisTools.CalculatePercentageChange
             (lastPoc, lastItem5M.Close);
